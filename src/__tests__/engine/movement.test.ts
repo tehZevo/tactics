@@ -287,14 +287,14 @@ describe("Game Engine — Movement", () => {
       type: "move",
       unitRef: { playerIndex: 0, unitIndex: 0 },
       targetRow: 1,
-      targetCol: 4,
+      targetCol: 3,
     });
 
-    const movedUnit = result.board[1][4];
+    const movedUnit = result.board[1][3];
     expect(movedUnit).not.toBeNull();
     expect(movedUnit!.typeId).toBe("warrior");
     expect(movedUnit!.row).toBe(1);
-    expect(movedUnit!.col).toBe(4);
+    expect(movedUnit!.col).toBe(3);
     expect(result.board[1][0]).toBeNull();
   });
 

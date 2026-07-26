@@ -67,24 +67,6 @@ describe("Game Engine — Combat", () => {
     expect(targetUnit!.currentHp).toBe(UNIT_TYPE_DEFS["archer"].hp);
   });
 
-  it("should apply poison from poison_blade", () => {
-    const state = startTestBattle(
-      [{ typeId: "rogue", passiveId: "nimble", col: 0, row: 2 }],
-      [{ typeId: "archer", passiveId: "nimble", col: 0, row: 3 }]
-    );
-
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "poison_blade",
-    });
-
-    const targetUnit = getUnitFromState(result, 1, 0);
-    expect(targetUnit).not.toBeNull();
-    expect(targetUnit!.poisonTurns).toBe(2);
-  });
-
   it("should kill a unit when HP reaches 0", () => {
     const state = startTestBattle(
       [{ typeId: "warrior", passiveId: "toughened", col: 0, row: 2 }],

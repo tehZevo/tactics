@@ -15,33 +15,35 @@ describe("Game Engine — Victory Conditions", () => {
       passiveId: "toughened" as const,
       row: 1,
       col: 0,
-      currentHp: 100,
+      currentHp: 8,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 0,
     };
 
     const p2Unit = {
       typeId: "archer" as const,
       passiveId: "nimble" as const,
-      row: 4,
+      row: 2,
       col: 0,
-      currentHp: 1,
+      currentHp: 5,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 1,
     };
 
     state.p1Team.placed = [p1Unit];
     state.p2Team.placed = [p2Unit];
     state.board[1][0] = p1Unit;
-    state.board[4][0] = p2Unit;
+    state.board[2][0] = p2Unit;
 
     const result = applyAction(state, {
       type: "attack",
@@ -62,33 +64,35 @@ describe("Game Engine — Victory Conditions", () => {
       passiveId: "toughened" as const,
       row: 1,
       col: 0,
-      currentHp: 1,
+      currentHp: 4,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 0,
     };
 
     const p2Unit = {
       typeId: "warrior" as const,
       passiveId: "toughened" as const,
-      row: 4,
+      row: 2,
       col: 0,
-      currentHp: 100,
+      currentHp: 8,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 1,
     };
 
     state.p1Team.placed = [p1Unit];
     state.p2Team.placed = [p2Unit];
     state.board[1][0] = p1Unit;
-    state.board[4][0] = p2Unit;
+    state.board[2][0] = p2Unit;
 
     const result = applyAction(state, {
       type: "attack",
@@ -167,33 +171,35 @@ describe("Game Engine — Victory Conditions", () => {
       passiveId: "toughened" as const,
       row: 1,
       col: 0,
-      currentHp: UNIT_TYPE_DEFS["warrior"].hp,
+      currentHp: 8,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 0,
     };
 
     const p2Unit = {
       typeId: "archer" as const,
       passiveId: "nimble" as const,
-      row: 4,
+      row: 2,
       col: 0,
-      currentHp: UNIT_TYPE_DEFS["archer"].hp,
+      currentHp: 7,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 1,
     };
 
     state.p1Team.placed = [p1Unit];
     state.p2Team.placed = [p2Unit];
     state.board[1][0] = p1Unit;
-    state.board[4][0] = p2Unit;
+    state.board[2][0] = p2Unit;
 
     // Deal some damage but not enough to kill
     const result = applyAction(state, {
@@ -215,33 +221,35 @@ describe("Game Engine — Victory Conditions", () => {
       passiveId: "toughened" as const,
       row: 1,
       col: 0,
-      currentHp: 100,
+      currentHp: 8,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 0,
     };
 
     const p2Unit = {
       typeId: "archer" as const,
       passiveId: "nimble" as const,
-      row: 4,
+      row: 2,
       col: 0,
-      currentHp: 1,
+      currentHp: 5,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 1,
     };
 
     state.p1Team.placed = [p1Unit];
     state.p2Team.placed = [p2Unit];
     state.board[1][0] = p1Unit;
-    state.board[4][0] = p2Unit;
+    state.board[2][0] = p2Unit;
 
     const battleState = applyAction(state, {
       type: "startBattle",
