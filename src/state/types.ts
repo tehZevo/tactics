@@ -17,6 +17,8 @@ export interface PlacedUnit {
   poisonTurns: number; // remaining poison turns (damage per turn)
   skillUsedThisTurn: boolean; // track if skill was used this turn (1 skill limit)
   invulnerable: boolean; // cannot be targeted by attacks/heals until next turn
+  leapBonus?: number; // temporary extra movement from Leap skill
+  playerIndex?: 0 | 1; // which player controls this unit (optional, falls back to row-based)
 }
 
 export interface Team {
@@ -50,6 +52,7 @@ export interface GameState {
     | { type: "attack"; target: PlacedUnit; skillId: string }
     | { type: "skill"; target: PlacedUnit; skillId: string }
     | { type: "aoeAttack"; skillId: string; center: { row: number; col: number }; caster: PlacedUnit }
+    | { type: "leap"; target: { row: number; col: number } }
     | { type: "endTurn" }
     | null;
   pendingDamage: { attacker: string; defender: string; amount: number } | null;

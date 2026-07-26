@@ -62,6 +62,9 @@ function getUnitDisplayName(unit: PlacedUnit): string {
 }
 
 function isOwnUnit(turnUnit: PlacedUnit, target: PlacedUnit): boolean {
+  if (turnUnit.playerIndex !== undefined && target.playerIndex !== undefined) {
+    return turnUnit.playerIndex === target.playerIndex;
+  }
   const turnTeam = turnUnit.row < 5 ? 0 : 1;
   const targetTeam = target.row < 5 ? 0 : 1;
   return turnTeam === targetTeam;
@@ -99,9 +102,9 @@ function calculateDamage(attacker: PlacedUnit, defender: PlacedUnit, skillId: st
   return Math.max(damage, 1);
 }
 
-function getReachableTiles(state: GameState, unit: PlacedUnit): Set<string> {
+function getReachableTiles(state: GameState, unit: PlacedUnit, playerIndex: 0 | 1): Set<string> {
   const reachable = new Set<string>();
-  const maxDist = unit.movement;
+  const maxDist = unit.movement + (unit.leapBonus || 0);
   const map = state.map;
   const visited = new Set<string>();
   const queue: { row: number; col: number; dist: number }[] = [{ row: unit.row, col: unit.col, dist: 0 }];
@@ -124,7 +127,13 @@ function getReachableTiles(state: GameState, unit: PlacedUnit): Set<string> {
       const key = `${nr},${nc}`;
       if (visited.has(key)) continue;
       if (!map.grid[nr][nc]) continue;
-      if (state.board[nr][nc]) continue;
+      const occupant = state.board[nr][nc];
+      if (occupant && isOwnUnit(unit, occupant)) {
+        visited.add(key);
+        queue.push({ row: nr, col: nc, dist: curr.dist + 1 });
+        continue;
+      }
+      if (occupant) continue;
       visited.add(key);
       queue.push({ row: nr, col: nc, dist: curr.dist + 1 });
     }
@@ -223,7 +232,7 @@ function executeMove(state: GameState, unitRef: { playerIndex: 0 | 1; unitIndex:
   const unit = getUnitByRef(unitRef, state.p1Team.placed, state.p2Team.placed);
   if (!unit || unit.currentHp <= 0) return state;
 
-  const reachable = getReachableTiles(state, unit);
+  const reachable = getReachableTiles(state, unit, unit.row < 5 ? 0 : 1);
   if (!reachable.has(`${targetRow},${targetCol}`)) return state;
 
   const oldRow = unit.row;
@@ -233,6 +242,7 @@ function executeMove(state: GameState, unitRef: { playerIndex: 0 | 1; unitIndex:
   unit.row = targetRow;
   unit.col = targetCol;
   state.board[targetRow][targetCol] = unit;
+  unit.leapBonus = 0;
 
   addLog(state, `${getUnitDisplayName(unit)} moves to (${targetRow},${targetCol}).`);
   return state;

@@ -1,0 +1,122 @@
+// ============================================================
+//  TEST FIXTURES — helpers for creating test state
+// ============================================================
+import { applyAction } from "../state/game-engine.js";
+import { Board } from "../state/types.js";
+import { MapLayout } from "../data/maps.js";
+import { Team, GameState } from "../state/types.js";
+import type { PlacedUnit } from "../state/types.js";
+import { UNIT_TYPE_DEFS } from "../data/index.js";
+
+export function createTestMap(): MapLayout {
+  const grid: boolean[][] = Array.from({ length: 6 }, () =>
+    Array.from({ length: 10 }, () => true)
+  );
+  grid[2][4] = false;
+  grid[2][5] = false;
+  return { name: "Test Map", grid };
+}
+
+function defaultUnit(typeId: string, passiveId: string, playerIndex: 0 | 1, row: number, col: number): PlacedUnit {
+  const def = UNIT_TYPE_DEFS[typeId];
+  return {
+    typeId,
+    passiveId,
+    name: `${typeId}`,
+    row,
+    col,
+    playerIndex,
+    currentHp: def.hp,
+    ap: 1,
+    movement: def.movement,
+    initiative: def.initiative,
+    poisonTurns: 0,
+    skillUsedThisTurn: false,
+    invulnerable: false,
+    unitIndex: 0,
+  };
+}
+
+export function getUnitFromState(
+  state: GameState,
+  playerIndex: 0 | 1,
+  unitIndex: number
+): PlacedUnit | null {
+  const team = playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
+  if (unitIndex >= team.length) return null;
+  return team[unitIndex];
+}
+
+export function createTestState(): GameState {
+  const p1Team: Team = { placed: [] };
+  const p2Team: Team = { placed: [] };
+  return {
+    screen: "battle",
+    currentTeam: 0,
+    p1Team,
+    p2Team,
+    map: createTestMap(),
+    deployTurn: 0,
+    selectedDeployCell: null,
+    editingUnitIndex: null,
+    selectedUnitType: null,
+    selectedPassiveId: null,
+    turnOrder: [],
+    currentTurnIndex: 0,
+    selectedUnit: null,
+    board: Array.from({ length: 6 }, () =>
+      Array.from({ length: 10 }, () => null)
+    ),
+    log: [],
+    winner: null,
+    hoveredTile: null,
+    actionMode: "idle",
+    selectedAction: null,
+    pendingDamage: null,
+  };
+}
+
+export function placeUnit(
+  state: GameState,
+  playerIndex: 0 | 1,
+  typeId: string,
+  passiveId: string,
+  row: number,
+  col: number
+): GameState {
+  const unit = defaultUnit(typeId, passiveId, playerIndex, row, col);
+  const team = playerIndex === 0 ? state.p1Team : state.p2Team;
+  unit.unitIndex = team.placed.length;
+  team.placed.push(unit);
+  state.board[row][col] = unit;
+  return state;
+}
+
+export function startTestBattle(
+  p1Units: { typeId: string; passiveId: string; col: number; row?: number }[],
+  p2Units: { typeId: string; passiveId: string; col: number; row?: number }[],
+  map?: MapLayout
+): GameState {
+  const p1Team: Team = { placed: [] };
+  const p2Team: Team = { placed: [] };
+
+  p1Units.forEach((u, i) => {
+    const unit = defaultUnit(u.typeId, u.passiveId, 0, u.row ?? 0, u.col);
+    unit.unitIndex = i;
+    p1Team.placed.push(unit);
+  });
+
+  p2Units.forEach((u, i) => {
+    const unit = defaultUnit(u.typeId, u.passiveId, 1, u.row ?? 5, u.col);
+    unit.unitIndex = i;
+    p2Team.placed.push(unit);
+  });
+
+  const initialState = createTestState();
+  return applyAction(initialState, {
+    type: "startBattle",
+    p1Team,
+    p2Team,
+    map: map ?? createTestMap(),
+  });
+}
