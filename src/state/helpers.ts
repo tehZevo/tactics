@@ -27,7 +27,7 @@ function manhattanDistance(r1: number, c1: number, r2: number, c2: number): numb
 
 export function getReachableTiles(state: GameState, unit: PlacedUnit): Set<string> {
   const reachable = new Set<string>();
-  const maxDist = unit.movement;
+  const maxDist = unit.movement + (unit.leapBonus || 0);
   const map = currentMap();
   // Simple BFS - each tile costs 1 movement
   const visited = new Set<string>();

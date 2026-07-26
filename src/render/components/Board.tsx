@@ -103,6 +103,15 @@ export function Board() {
             tileClasses.push(action.type === "attack" ? "attack-highlight" : "skill-highlight");
           }
         }
+        if (action.type === "leap") {
+          const turnUnit = getTurnUnit(state);
+          if (turnUnit) {
+            const reachable = getReachableTiles(state, turnUnit);
+            if (reachable.has(`${r},${c}`) && state.board[r][c] === null) {
+              tileClasses.push("leap-highlight");
+            }
+          }
+        }
         if (action.type === "aoeAttack") {
           const skill = SKILL_DEFS[action.skillId];
           if (skill && skill.aoe) {

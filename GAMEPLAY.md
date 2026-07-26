@@ -16,6 +16,7 @@ Each player builds a team of **6 units** chosen from 8 available types. Each uni
 | **P** Paladin | 7 | 0 | 1 | 3 | 1 | Defensive holy warrior |
 | **C** Cleric | 6 | 0 | 0 | 4 | 3 | Healer with ranged attack |
 | **Ph** Phantom | 4 | 0 | 0 | 5 | 7 | Ethereal, invulnerable strikes |
+| **Be** Berserker | 7 | 0 | 0 | 3 | 4 | Self-sacrificing rusher with high damage and gap-closing leap |
 
 ### Skills (2 per unit)
 
@@ -51,6 +52,10 @@ Each player builds a team of **6 units** chosen from 8 available types. Each uni
 **Phantom**
 - **Phase Shift** (4 AP, self) — become invulnerable until your next turn
 - **Void Strike** (1 AP, range 1) — 3 damage, ignores target's defense
+
+**Berserker**
+- **Soul Reave** (2 AP, range 1, CD 2) — 8 damage, but costs 2 HP
+- **Leap** (2 AP, self) — bound forward, gaining +2 movement this turn
 
 ## Passives
 
@@ -121,6 +126,7 @@ The Phantom's **Phase Shift** makes it untargetable by any attacks or heals unti
 - **Frontline units** (Warrior, Paladin) should absorb damage and protect backline casters.
 - **Archers and Mages** stay at range and chip away with attacks; use Tracker for extra reach.
 - **Rogues and Phantoms** are fast harassers — use Shadow Step to reposition and Void Strike to ignore armor.
+- **Berserkers** are frontline bruisers — use Leap to close distance onto squishy backline targets, then Soul Reave for massive melee damage at the cost of your own HP.
 - **Paladins and Clerics** keep the team alive; heal key targets before they die.
 - **Geomancers** excel at clearing groups but need protection — Cataclysm costs 6 AP, so plan turns around it.
 - **Desperate** is high-risk/high-reward: the extra AP lets you act more, but the -1 defense makes your unit fragile.
