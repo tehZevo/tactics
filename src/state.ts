@@ -22,7 +22,7 @@ import {
   getUnitDisplayName,
 } from "./state/helpers.js";
 import { SKILL_DEFS } from "./data/skills.js";
-import { executeAttack, executeMove, executeAoeAttack, getTurnUnit, advanceTurn } from "./state/combat.js";
+import { executeAttack, executeMove, executeAoeAttack, executeLeap, getTurnUnit, advanceTurn } from "./state/combat.js";
 import { getRandomMap } from "./data/maps.js";
 import { getRandomTeam } from "./data/teams.js";
 
@@ -63,9 +63,9 @@ function createPlacedUnit(typeId: string, passiveId: string, row: number, col: n
     ap: 0,
     movement: stats.movement,
     initiative: stats.initiative,
-    poisonTurns: 0,
     skillUsedThisTurn: false,
     invulnerable: false,
+    leapBonus: 0,
   };
 }
 
@@ -347,6 +347,11 @@ export function placeUnit(row: number, col: number): void {
       notifySubscribers();
       return;
     }
+    if (action.type === "leap") {
+      executeLeap(state, row, col);
+      notifySubscribers();
+      return;
+    }
     if (action.type === "aoeAttack") {
       // Click any tile to center the AoE
       const caster = action.caster;
@@ -397,6 +402,16 @@ export function startTargeting(unit: PlacedUnit, skillId: string): void {
   // AoE skills: target a tile to center the area effect
   if (skill.aoe && skill.type === "attack") {
     state.selectedAction = { type: "aoeAttack", skillId, center: { row: unit.row, col: unit.col }, caster: unit };
+    return;
+  }
+  
+  // Leap: activate first, then player clicks destination
+  if (skill.type === "movement" && skill.leapBonus) {
+    // Execute leap activation (applies leapBonus, costs AP)
+    executeAttack(state, skillId, unit);
+    // Set up leap targeting - player will click a tile
+    state.selectedAction = { type: "leap", target: { row: unit.row, col: unit.col } };
+    notifySubscribers();
     return;
   }
   
@@ -480,6 +495,11 @@ export function selectTile(row: number, col: number): void {
       notifySubscribers();
       return;
     }
+    if (action.type === "leap") {
+      executeLeap(state, row, col);
+      notifySubscribers();
+      return;
+    }
     if (action.type === "aoeAttack") {
       // Click any tile to center the AoE
       const caster = action.caster;
@@ -546,7 +566,7 @@ export function notifySubscribers(): void {
 
 // ---- Re-exports from submodules ----
 
-export { executeAttack, executeMove, getTurnUnit, advanceTurn } from "./state/combat";
+export { executeAttack, executeMove, executeLeap, getTurnUnit, advanceTurn } from "./state/combat";
 export { aiTakeTurn } from "./state/ai";
 export { isOwnUnit, getUnitDisplayName, getReachableTiles, getEffectiveStats, getUnitMaxHp, getUnitAt, getTargetsInRange, calculateDamage, addLog, findUnitRef, getUnitByRef } from "./state/helpers";
 export type { GameState, PlacedUnit } from "./state/types";

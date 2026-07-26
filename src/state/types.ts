@@ -14,7 +14,6 @@ export interface PlacedUnit {
   ap: number;
   movement: number;
   initiative: number;
-  poisonTurns: number; // remaining poison turns (damage per turn)
   skillUsedThisTurn: boolean; // track if skill was used this turn (1 skill limit)
   invulnerable: boolean; // cannot be targeted by attacks/heals until next turn
   leapBonus?: number; // temporary extra movement from Leap skill

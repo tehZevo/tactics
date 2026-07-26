@@ -44,6 +44,33 @@ export function executeMove(state: GameState, row: number, col: number): void {
   state.selectedAction = null;
 }
 
+export function executeLeap(state: GameState, targetRow: number, targetCol: number): void {
+  const turnUnit = getTurnUnit(state);
+  if (!turnUnit) return;
+
+  const leapBonus = turnUnit.leapBonus || 0;
+  if (leapBonus <= 0) return;
+
+  // Check if target is reachable with normal + leap movement
+  const reachable = getReachableTiles(state, turnUnit);
+  if (!reachable.has(`${targetRow},${targetCol}`)) return;
+
+  // Verify target is empty
+  if (state.board[targetRow][targetCol] !== null) return;
+
+  const oldRow = turnUnit.row;
+  const oldCol = turnUnit.col;
+
+  state.board[oldRow][oldCol] = null;
+  turnUnit.row = targetRow;
+  turnUnit.col = targetCol;
+  state.board[targetRow][targetCol] = turnUnit;
+
+  addLog(state, `${getUnitDisplayName(turnUnit)} leaps to (${targetRow},${targetCol})!`);
+  state.actionMode = "idle";
+  state.selectedAction = null;
+}
+
 export function executeAttack(state: GameState, skillId: string, target: PlacedUnit): void {
   const turnUnit = getTurnUnit(state);
   if (!turnUnit) return;
@@ -122,11 +149,6 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
       checkVictory(state);
     }
 
-    // Poison: apply poison to target
-    if (skillId === "poison_blade") {
-      target.poisonTurns = 2;
-      addLog(state, `${getUnitDisplayName(target)} is poisoned!`, "damage");
-    }
   } else if (skill.type === "heal") {
     const healAmount = skill.healAmount || 4;
     const maxHp = getUnitMaxHp(target);
@@ -142,6 +164,40 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
     }
     addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}!`, "info");
   } else if (skill.type === "movement") {
+    if (skill.leapBonus) {
+      // Leap: grant temporary movement bonus, then let player choose destination
+      turnUnit.ap -= skill.cost;
+      turnUnit.skillUsedThisTurn = true;
+      turnUnit.leapBonus = skill.leapBonus;
+      addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}, gaining +${skill.leapBonus} movement!`, "info");
+      return;
+    }
+    if (skill.swapTarget) {
+      // Swap: swap positions with target unit
+      turnUnit.ap -= skill.cost;
+      turnUnit.skillUsedThisTurn = true;
+      const targetRow = target.row;
+      const targetCol = target.col;
+      
+      state.board[turnUnit.row][turnUnit.col] = null;
+      state.board[target.row][target.col] = null;
+      
+      const tempRow = turnUnit.row;
+      const tempCol = turnUnit.col;
+      turnUnit.row = targetRow;
+      turnUnit.col = targetCol;
+      target.row = tempRow;
+      target.col = tempCol;
+      
+      state.board[turnUnit.row][turnUnit.col] = turnUnit;
+      state.board[target.row][target.col] = target;
+      
+      const turnTeam = turnUnit.row < 5 ? 0 : 1;
+      const targetTeam = target.row < 5 ? 0 : 1;
+      const isAlly = turnTeam === targetTeam;
+      addLog(state, `${getUnitDisplayName(turnUnit)} swaps with ${getUnitDisplayName(target)}${isAlly ? " (ally)" : " (enemy)"}`);
+      return;
+    }
     // Shadow Step: teleport to any empty tile within range 3
     const range = 3;
     // Find nearest valid target (the tile the player clicked should be within range and empty)
@@ -227,17 +283,7 @@ export function advanceTurn(state: GameState): void {
       if (!unit || unit.currentHp <= 0) continue;
 
       unit.skillUsedThisTurn = false;
-
-      // Apply poison
-      if (unit.poisonTurns > 0) {
-        unit.currentHp -= 2;
-        unit.poisonTurns--;
-        addLog(state, `${getUnitDisplayName(unit)} takes 2 poison damage!`, "damage");
-        if (unit.currentHp <= 0) {
-          unit.currentHp = 0;
-          addLog(state, `${getUnitDisplayName(unit)} succumbs to poison!`, "damage");
-        }
-      }
+      unit.leapBonus = 0;
 
       // Regeneration heal
       if (unit.passiveId === "regeneration") {

@@ -17,6 +17,8 @@ export interface SkillDef {
   ignoresDefense?: boolean; // if true, ignores defender's defense stat
   apDrain?: number; // amount of AP to drain from target
   selfDamage?: number; // HP the user loses when using this skill
+  leapBonus?: number; // extra movement range granted by this skill
+  swapTarget?: boolean; // if true, swaps user with target
 }
 
 export const SKILL_DEFS: Record<string, SkillDef> = {
@@ -83,14 +85,14 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
   },
 
   // Rogue
-  poison_blade: {
-    name: "Poison Blade",
+  riposte: {
+    name: "Riposte",
     cost: 1,
     range: 1,
     cooldown: 0,
-    description: "Slash for 2 damage and poison for 2 additional damage over 2 turns.",
+    description: "A quick slash dealing 4 damage.",
     type: "attack",
-    damage: 2,
+    damage: 4,
   },
   shadow_step: {
     name: "Shadow Step",
@@ -127,9 +129,9 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     cost: 2,
     range: 2,
     cooldown: 1,
-    description: "Hurl a shard of earth dealing 4 damage. Slows target by -1 movement next turn.",
+    description: "Hurl a shard of earth dealing 5 damage.",
     type: "attack",
-    damage: 4,
+    damage: 5,
   },
 
   // Paladin
@@ -206,5 +208,35 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     type: "attack",
     damage: 8,
     selfDamage: 2,
+  },
+  leap: {
+    name: "Leap",
+    cost: 2,
+    range: 0,
+    cooldown: 0,
+    description: "Bound forward, gaining +2 movement this turn.",
+    type: "movement",
+    leapBonus: 2,
+  },
+
+  // Battlemage
+  swap: {
+    name: "Swap",
+    cost: 2,
+    range: 2,
+    cooldown: 1,
+    description: "Swap positions with any unit (ally or enemy).",
+    type: "movement",
+    swapTarget: true,
+  },
+  arcane_burst: {
+    name: "Arcane Burst",
+    cost: 2,
+    range: 1,
+    cooldown: 1,
+    description: "Deal 4 damage to the target and 2 damage to adjacent enemies.",
+    type: "attack",
+    damage: 2,
+    aoe: 1,
   },
 };

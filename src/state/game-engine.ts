@@ -300,11 +300,6 @@ function executeAttack(state: GameState, attackerRef: { playerIndex: 0 | 1; unit
       checkVictory(state);
     }
 
-    if (skillId === "poison_blade") {
-      target.poisonTurns = 2;
-      addLog(state, `${getUnitDisplayName(target)} is poisoned!`, "damage");
-    }
-
     if (skill.selfDamage) {
       attacker.currentHp -= skill.selfDamage;
       if (attacker.currentHp <= 0) {
@@ -419,16 +414,6 @@ export function advanceTurn(state: GameState): GameState {
       if (!unit || unit.currentHp <= 0) continue;
 
       unit.skillUsedThisTurn = false;
-
-      if (unit.poisonTurns > 0) {
-        unit.currentHp -= 2;
-        unit.poisonTurns--;
-        addLog(state, `${getUnitDisplayName(unit)} takes 2 poison damage!`, "damage");
-        if (unit.currentHp <= 0) {
-          unit.currentHp = 0;
-          addLog(state, `${getUnitDisplayName(unit)} succumbs to poison!`, "damage");
-        }
-      }
 
       if (unit.passiveId === "regeneration") {
         const maxHp = getUnitMaxHp(unit);
