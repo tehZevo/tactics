@@ -97,6 +97,17 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
 
     addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name} on ${getUnitDisplayName(target)} for ${damage} damage!`, "damage");
 
+    // Self damage
+    if (skill.selfDamage) {
+      turnUnit.currentHp -= skill.selfDamage;
+      if (turnUnit.currentHp <= 0) {
+        turnUnit.currentHp = 0;
+        addLog(state, `${getUnitDisplayName(turnUnit)} was consumed by their own attack!`, "damage");
+      } else {
+        addLog(state, `${getUnitDisplayName(turnUnit)} takes ${skill.selfDamage} self damage!`, "damage");
+      }
+    }
+
     // Check for kill
     if (target.currentHp <= 0) {
       target.currentHp = 0;
@@ -196,19 +207,25 @@ export function getTurnUnit(state: GameState): PlacedUnit | null {
 }
 
 export function advanceTurn(state: GameState): void {
+  const prevIndex = state.currentTurnIndex;
   state.currentTurnIndex++;
+
+  // Restore AP for the unit that just finished their turn
+  const prevEntry = state.turnOrder[prevIndex];
+  const prevUnit = getUnitByRef(prevEntry.playerIndex, prevEntry.unitIndex, state.p1Team.placed, state.p2Team.placed);
+  if (prevUnit && prevUnit.currentHp > 0) {
+    let apGain = 1;
+    if (prevUnit.passiveId === "desperate") apGain += 1;
+    prevUnit.ap = Math.min(prevUnit.ap + apGain, 6);
+  }
 
   // Check if we've gone through all units
   if (state.currentTurnIndex >= state.turnOrder.length) {
-    // New round - add AP, tick buffs, apply poison
+    // New round - reset skillUsedThisTurn and apply poison
     for (const entry of state.turnOrder) {
       const unit = getUnitByRef(entry.playerIndex, entry.unitIndex, state.p1Team.placed, state.p2Team.placed);
       if (!unit || unit.currentHp <= 0) continue;
 
-      // Add AP (cumulative, capped at MAX_AP)
-      let apGain = 1;
-      if (unit.passiveId === "desperate") apGain += 1;
-      unit.ap = Math.min(unit.ap + apGain, 6);
       unit.skillUsedThisTurn = false;
 
       // Apply poison
@@ -220,6 +237,13 @@ export function advanceTurn(state: GameState): void {
           unit.currentHp = 0;
           addLog(state, `${getUnitDisplayName(unit)} succumbs to poison!`, "damage");
         }
+      }
+
+      // Regeneration heal
+      if (unit.passiveId === "regeneration") {
+        const maxHp = getUnitMaxHp(unit);
+        unit.currentHp = Math.min(unit.currentHp + 1, maxHp);
+        addLog(state, `${getUnitDisplayName(unit)} restores 1 HP via Regeneration!`, "heal");
       }
     }
     state.currentTurnIndex = 0;

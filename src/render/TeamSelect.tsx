@@ -1,6 +1,17 @@
 /// <reference types="react" />
-import React, { useState } from 'react';
-import { state, selectUnit, setPassive, confirmTeam, deselectUnit, getIsVsAI } from "../state";
+import React from 'react';
+import { useState, useEffect } from 'react';
+import {
+  state,
+  selectDeployCell,
+  addUnitToBoard,
+  deletePlacedUnit,
+  selectUnitType,
+  selectPassiveId,
+  confirmTeam,
+  getIsVsAI,
+} from "../state";
+import { subscribe } from "../state";
 import {
   UNIT_TYPE_DEFS,
   UNIT_TYPE_IDS,
@@ -8,6 +19,7 @@ import {
   PASSIVE_IDS,
 } from "../data/index";
 import { SKILL_DEFS } from "../data/skills.js";
+import { Board } from "./components/Board";
 
 function applyPassive(typeDef: { hp: number; baseAtk: number; baseDef: number; movement: number; initiative: number }, passiveId: string) {
   if (!passiveId || !PASSIVE_DEFS[passiveId]) return null;
@@ -22,7 +34,6 @@ function applyPassive(typeDef: { hp: number; baseAtk: number; baseDef: number; m
 
 function StatRow({ label, base, bonus, final: fFinal }: { label: string; base: number; bonus: number; final: number }) {
   const bonusClass = bonus > 0 ? "positive" : bonus < 0 ? "negative" : "";
-  const diffClass = fFinal - base > 0 ? "positive" : fFinal - base < 0 ? "negative" : "";
   return (
     <div className="stat-row">
       <span className="stat-label">{label}</span>
@@ -34,323 +45,246 @@ function StatRow({ label, base, bonus, final: fFinal }: { label: string; base: n
 }
 
 export function TeamSelect() {
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    return subscribe(() => {
+      setVersion(v => v + 1);
+    });
+  }, []);
+
   const p1Team = state.p1Team;
   const p2Team = state.p2Team;
-  const [previewIndex, setPreviewIndex] = useState<{ [key: number]: number | null }>({ 0: null, 1: null });
-  const [selectedUnitType, setSelectedUnitType] = useState<{ [key: number]: string | null }>({ 0: null, 1: null });
-  const [selectedPassive, setSelectedPassive] = useState<{ [key: number]: string }>({ 0: "", 1: "" });
+  const isVsAI = getIsVsAI();
+  const isCurrentPlayer = state.deployTurn === 0;
+  const team = state.deployTurn === 0 ? p1Team : p2Team;
+  const selectedCell = state.selectedDeployCell;
+  const editingIdx = state.editingUnitIndex;
 
-  const handleSelectUnit = (playerIndex: 0 | 1, typeId: string) => {
-    setSelectedUnitType(prev => ({ ...prev, [playerIndex]: typeId }));
-    setPreviewIndex(prev => ({ ...prev, [playerIndex]: null }));
-    // Auto-select first recommended passive if no passive currently selected
-    if (!selectedPassive[playerIndex]) {
-      const recommendedIds = PASSIVE_IDS.filter(pid => PASSIVE_DEFS[pid].recommended.includes(typeId));
-      if (recommendedIds.length > 0) {
-        setSelectedPassive(prev => ({ ...prev, [playerIndex]: recommendedIds[0] }));
-      }
+  const handleSelectUnitType = (typeId: string) => {
+    selectUnitType(typeId);
+    selectPassiveId("");
+  };
+
+  const handleSelectPassive = (passiveId: string) => {
+    selectPassiveId(passiveId);
+  };
+
+  const handleSelectPlacedUnit = (index: number) => {
+    if (!isCurrentPlayer) return;
+    state.editingUnitIndex = index;
+    const pu = team.placed[index];
+    if (pu) {
+      selectUnitType(pu.typeId);
+      selectPassiveId(pu.passiveId || "");
     }
   };
 
-  const handlePreviewUnit = (playerIndex: 0 | 1, index: number) => {
-    setPreviewIndex(prev => ({ ...prev, [playerIndex]: index }));
-    setSelectedUnitType(prev => ({ ...prev, [playerIndex]: null }));
+  const handleAddToBoard = () => {
+    if (!selectedCell) return;
+    addUnitToBoard(state.selectedUnitType!, state.selectedPassiveId!);
   };
 
-  const handleAddUnit = (playerIndex: 0 | 1) => {
-    const typeId = selectedUnitType[playerIndex];
-    if (!typeId) return;
-    selectUnit(playerIndex, typeId);
-    setSelectedUnitType(prev => ({ ...prev, [playerIndex]: null }));
-    const team = playerIndex === 0 ? p1Team : p2Team;
-    setPreviewIndex(prev => ({ ...prev, [playerIndex]: team.units.length - 1 }));
+  const handleDeletePlaced = (index: number) => {
+    deletePlacedUnit(index);
   };
 
-  const renderTeamPanel = (playerIndex: 0 | 1, cls: string) => {
-    const team = playerIndex === 0 ? p1Team : p2Team;
-    const previewIdx = previewIndex[playerIndex];
-    const previewUnit = previewIdx !== null && previewIdx < team.units.length ? team.units[previewIdx] : null;
-    const previewType = previewUnit ? UNIT_TYPE_DEFS[previewUnit.typeId] : null;
-
-    const unitCardCounts: Record<string, number> = {};
-    for (const unit of team.units) {
-      unitCardCounts[unit.typeId] = (unitCardCounts[unit.typeId] || 0) + 1;
-    }
-
-    const unitCards: React.ReactElement[] = [];
-    for (const typeId of UNIT_TYPE_IDS) {
-      const def = UNIT_TYPE_DEFS[typeId];
-      const count = unitCardCounts[typeId] || 0;
-      const canAdd = count < 6 && team.units.length < 6;
-      const cardClasses = [`unit-card${count > 0 ? " has-copy" : ""}`];
-
-      unitCards.push(
-        <div
-          key={typeId}
-          className={cardClasses.join(" ")}
-          onClick={() => canAdd && handleSelectUnit(playerIndex, typeId)}
-        >
-          <div className="unit-icon" style={{ background: def.color, width: "28px", height: "28px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>
-            {def.icon}
-          </div>
-          <div className="unit-name">{def.name}</div>
-          {count > 0 && (
-            <div className="unit-copy-count">{count}</div>
-          )}
+  // Unit cards
+  const unitCards: React.ReactElement[] = [];
+  for (const typeId of UNIT_TYPE_IDS) {
+    const def = UNIT_TYPE_DEFS[typeId];
+    const isSelected = state.selectedUnitType === typeId;
+    unitCards.push(
+      <div
+        key={typeId}
+        className={`unit-card${isSelected ? " active" : ""}`}
+        onClick={() => handleSelectUnitType(typeId)}
+      >
+        <div className="unit-icon" style={{ background: def.color, width: "28px", height: "28px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>
+          {def.icon}
         </div>
-      );
-    }
-
-    const selectedTypeId = selectedUnitType[playerIndex];
-    const isNewUnit = !!selectedTypeId;
-    const passivePicker: React.ReactElement | null = (() => {
-      const unitTypeId = isNewUnit ? selectedTypeId! : (previewUnit?.typeId || null);
-      if (!unitTypeId) return null;
-      const unitType = UNIT_TYPE_DEFS[unitTypeId];
-      const recommendedIds = PASSIVE_IDS.filter(pid => PASSIVE_DEFS[pid].recommended.includes(unitTypeId));
-      const currentPassiveId = isNewUnit ? (selectedPassive[playerIndex] || "") : (previewUnit?.passiveId || "");
-
-      return (
-        <div className={`passive-slot${currentPassiveId ? " filled" : ""}`}>
-          <div className="passive-grid">
-            {PASSIVE_IDS.map((pid) => {
-              const passiveDef = PASSIVE_DEFS[pid];
-              const isRecommended = recommendedIds.includes(pid);
-              const isSelected = currentPassiveId === pid;
-              const gridBtnClasses = [`passive-grid-btn${isSelected ? " selected" : ""}${isRecommended ? " recommended" : ""}`];
-              return (
-                <div key={pid} className={gridBtnClasses.join(" ")} title={passiveDef.description}>
-                  <button
-                    className="passive-grid-btn-inner"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isNewUnit) {
-                        setSelectedPassive(prev => ({ ...prev, [playerIndex]: pid }));
-                      } else {
-                        setPassive(playerIndex, previewIdx!, pid);
-                      }
-                    }}
-                    title={passiveDef.name}
-                  >
-                    {passiveDef.name}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    })();
-
-    let previewSection: React.ReactElement | null = null;
-    if (previewUnit && previewType) {
-      const passiveId = previewUnit.passiveId;
-      const passiveDef = passiveId ? PASSIVE_DEFS[passiveId] : null;
-      const finalStats = applyPassive(previewType, passiveId);
-      const baseStats: { hp: number; baseAtk: number; baseDef: number; movement: number; initiative: number } = previewType;
-
-      const skills: React.ReactElement[] = [];
-      for (const skillId of previewType.skills) {
-        const skill = SKILL_DEFS[skillId];
-        skills.push(
-          <div key={skillId} className="skill-item">
-            <div className="skill-name">{skill.name}</div>
-            <div className="skill-desc">{skill.description}</div>
-            <div className="skill-meta">AP: {skill.cost} | Range: {skill.range}</div>
-          </div>
-        );
-      }
-
-      previewSection = (
-        <div className="unit-preview">
-          <div className="preview-header">
-            <div className="preview-icon" style={{ background: previewType.color }}>
-              {previewType.icon}
-            </div>
-            <div className="preview-name">{previewType.name}</div>
-          </div>
-          <div className="preview-description">{previewType.description}</div>
-          <hr className="preview-divider" />
-
-          <div className="preview-stats">
-            <h4>Stats</h4>
-            <StatRow label="HP" base={baseStats.hp} bonus={(finalStats || previewType).hp - baseStats.hp} final={(finalStats || previewType).hp} />
-            <StatRow label="ATK" base={baseStats.baseAtk} bonus={(finalStats ? finalStats.attack : previewType.baseAtk) - baseStats.baseAtk} final={finalStats ? finalStats.attack : previewType.baseAtk} />
-            <StatRow label="DEF" base={baseStats.baseDef} bonus={(finalStats ? finalStats.defense : previewType.baseDef) - baseStats.baseDef} final={finalStats ? finalStats.defense : previewType.baseDef} />
-            <StatRow label="SPD" base={baseStats.movement} bonus={(finalStats || previewType).movement - baseStats.movement} final={(finalStats || previewType).movement} />
-            <StatRow label="INIT" base={baseStats.initiative} bonus={(finalStats || previewType).initiative - baseStats.initiative} final={(finalStats || previewType).initiative} />
-          </div>
-
-          {passiveDef && (
-            <div className="preview-passive">
-              <h4>Passive: {passiveDef.name}</h4>
-              <div className="passive-description">{passiveDef.description}</div>
-            </div>
-          )}
-
-          {!passiveDef && (
-            <div className="preview-no-passive">
-              <em>No passive selected</em>
-            </div>
-          )}
-
-          <div className="preview-skills">
-            <h4>Skills</h4>
-            {skills}
-          </div>
-        </div>
-      );
-    } else if (selectedTypeId) {
-      const typeDef = UNIT_TYPE_DEFS[selectedTypeId];
-      const passiveId = selectedPassive[playerIndex];
-      const passiveDef = passiveId ? PASSIVE_DEFS[passiveId] : null;
-      const finalStats = applyPassive(typeDef, passiveId);
-      const baseStats: { hp: number; baseAtk: number; baseDef: number; movement: number; initiative: number } = typeDef;
-
-      const inRoster = team.units.some(u => u.typeId === selectedTypeId);
-
-      const skills: React.ReactElement[] = [];
-      for (const skillId of typeDef.skills) {
-        const skill = SKILL_DEFS[skillId];
-        skills.push(
-          <div key={skillId} className="skill-item">
-            <div className="skill-name">{skill.name}</div>
-            <div className="skill-desc">{skill.description}</div>
-            <div className="skill-meta">AP: {skill.cost} | Range: {skill.range}</div>
-          </div>
-        );
-      }
-
-      previewSection = (
-        <div className="unit-preview">
-          <div className="preview-header">
-            <div className="preview-icon" style={{ background: typeDef.color }}>
-              {typeDef.icon}
-          </div>
-          <div className="preview-name">{typeDef.name}</div>
-        </div>
-          <div className="preview-description">{typeDef.description}</div>
-          <hr className="preview-divider" />
-
-          <div className="preview-stats">
-            <h4>Stats</h4>
-            <StatRow label="HP" base={baseStats.hp} bonus={(finalStats || typeDef).hp - baseStats.hp} final={(finalStats || typeDef).hp} />
-            <StatRow label="ATK" base={baseStats.baseAtk} bonus={(finalStats ? finalStats.attack : typeDef.baseAtk) - baseStats.baseAtk} final={finalStats ? finalStats.attack : typeDef.baseAtk} />
-            <StatRow label="DEF" base={baseStats.baseDef} bonus={(finalStats ? finalStats.defense : typeDef.baseDef) - baseStats.baseDef} final={finalStats ? finalStats.defense : typeDef.baseDef} />
-            <StatRow label="SPD" base={baseStats.movement} bonus={(finalStats || typeDef).movement - baseStats.movement} final={(finalStats || typeDef).movement} />
-            <StatRow label="INIT" base={baseStats.initiative} bonus={(finalStats || typeDef).initiative - baseStats.initiative} final={(finalStats || typeDef).initiative} />
-          </div>
-
-          {passiveDef && (
-            <div className="preview-passive">
-              <h4>Passive: {passiveDef.name}</h4>
-              <div className="passive-description">{passiveDef.description}</div>
-            </div>
-          )}
-
-          {!passiveDef && (
-            <div className="preview-no-passive">
-              <em>No passive selected</em>
-            </div>
-          )}
-
-          <div className="preview-skills">
-            <h4>Skills</h4>
-            {skills}
-          </div>
-
-          {!inRoster && (
-            <button className="preview-add-btn" onClick={() => handleAddUnit(playerIndex)}>
-              Add to Team
-            </button>
-          )}
-        </div>
-      );
-    } else {
-      previewSection = (
-        <div className="unit-preview empty">
-          <p>Select a unit or click on a team member to preview</p>
-        </div>
-      );
-    }
-
-    const rosterUnits: React.ReactElement[] = [];
-    for (let i = 0; i < 6; i++) {
-      const unit = team.units[i];
-      const typeDef = unit ? UNIT_TYPE_DEFS[unit.typeId] : null;
-      const isSelected = previewIdx === i;
-      rosterUnits.push(
-        <div
-          key={i}
-          className={`roster-unit${unit ? "" : " empty"}${isSelected ? " selected" : ""}`}
-          onClick={() => unit && handlePreviewUnit(playerIndex, i)}
-        >
-          {typeDef ? (
-            <>
-              <span className="roster-icon" style={{ background: typeDef.color }}>
-                {typeDef.icon}
-              </span>
-              <span className="roster-name">{typeDef.name}</span>
-              {unit.passiveId ? (
-                <span className="roster-passive" title={PASSIVE_DEFS[unit.passiveId].description}>(<em>{PASSIVE_DEFS[unit.passiveId].name}</em>)</span>
-              ) : (
-                <span className="roster-no-passive">—</span>
-              )}
-              <button
-                className="roster-remove-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deselectUnit(playerIndex, i);
-                  if (previewIdx === i) {
-                    setPreviewIndex(prev => ({ ...prev, [playerIndex]: null }));
-                  } else if (previewIdx !== null && previewIdx > i) {
-                    setPreviewIndex(prev => ({ ...prev, [playerIndex]: prev[playerIndex]! - 1 }));
-                  }
-                }}
-                title="Remove unit"
-              >
-                ×
-              </button>
-            </>
-          ) : (
-            <span className="roster-empty">—</span>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div key={cls} className={`team-panel ${cls}`}>
-        <h3>Player {playerIndex + 1}</h3>
-        <div className="team-select-layout">
-          <div className="team-select-col team-select-col-units">
-            <h4>Choose Unit</h4>
-            <div className="unit-cards">{unitCards}</div>
-          </div>
-          <div className="team-select-col team-select-col-passives">
-            <h4>Choose Passive</h4>
-            <div className="passive-slots">{passivePicker}</div>
-          </div>
-          <div className="team-select-col team-select-col-preview">
-            <h4>Preview</h4>
-            {previewSection}
-          </div>
-          <div className="team-select-col team-select-col-roster">
-            <h4>Roster</h4>
-            <div className="roster">{rosterUnits}</div>
-          </div>
-        </div>
+        <div className="unit-name">{def.name}</div>
       </div>
     );
-  };
+  }
 
-  const isVsAI = getIsVsAI();
+  // Passive picker
+  const unitTypeId = editingIdx !== null ? (team.placed[editingIdx]?.typeId || state.selectedUnitType) : state.selectedUnitType;
+  let passivePicker: React.ReactElement | null = null;
+  if (unitTypeId) {
+    const unitType = UNIT_TYPE_DEFS[unitTypeId];
+    const recommendedIds = PASSIVE_IDS.filter(pid => PASSIVE_DEFS[pid].recommended.includes(unitTypeId));
+    const currentPassiveId = editingIdx !== null ? (team.placed[editingIdx]?.passiveId || "") : state.selectedPassiveId;
+
+    const gridBtns: React.ReactElement[] = [];
+    for (const pid of PASSIVE_IDS) {
+      const passiveDef = PASSIVE_DEFS[pid];
+      const isRecommended = recommendedIds.includes(pid);
+      const isSelected = currentPassiveId === pid;
+      gridBtns.push(
+        <div key={pid} className={`passive-grid-btn${isSelected ? " selected" : ""}${isRecommended ? " recommended" : ""}`}>
+          <button
+            className="passive-grid-btn-inner"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSelectPassive(pid);
+            }}
+          >
+            {passiveDef.name}
+          </button>
+        </div>
+      );
+    }
+    passivePicker = (
+      <div className="passive-slot">{currentPassiveId ? " filled" : ""}
+        <div className="passive-grid">{gridBtns}</div>
+      </div>
+    );
+  }
+
+  // Preview section
+  const previewType = unitTypeId ? UNIT_TYPE_DEFS[unitTypeId] : null;
+  const previewPassiveId = editingIdx !== null ? (team.placed[editingIdx]?.passiveId || "") : state.selectedPassiveId;
+  const previewPassiveDef = previewPassiveId ? PASSIVE_DEFS[previewPassiveId] : null;
+  const previewStats = previewType ? applyPassive(previewType, previewPassiveId || "") : null;
+
+  let previewSection: React.ReactElement | null = null;
+  if (previewType) {
+    const skills: React.ReactElement[] = [];
+    for (const skillId of previewType.skills) {
+      const skill = SKILL_DEFS[skillId];
+      skills.push(
+        <div key={skillId} className="skill-item">
+          <div className="skill-name">{skill.name}</div>
+          <div className="skill-desc">{skill.description}</div>
+          <div className="skill-meta">AP: {skill.cost} | Range: {skill.range}</div>
+        </div>
+      );
+    }
+
+    previewSection = (
+      <div className="unit-preview">
+        <div className="preview-header">
+          <div className="preview-icon" style={{ background: previewType.color }}>
+            {previewType.icon}
+          </div>
+          <div className="preview-name">{previewType.name}</div>
+        </div>
+        <div className="preview-description">{previewType.description}</div>
+        <hr className="preview-divider" />
+
+        <div className="preview-stats">
+          <h4>Stats</h4>
+          <StatRow label="HP" base={previewType.hp} bonus={(previewStats || previewType).hp - previewType.hp} final={(previewStats || previewType).hp} />
+          <StatRow label="ATK" base={previewType.baseAtk} bonus={(previewStats ? previewStats.attack : previewType.baseAtk) - previewType.baseAtk} final={previewStats ? previewStats.attack : previewType.baseAtk} />
+          <StatRow label="DEF" base={previewType.baseDef} bonus={(previewStats ? previewStats.defense : previewType.baseDef) - previewType.baseDef} final={previewStats ? previewStats.defense : previewType.baseDef} />
+          <StatRow label="SPD" base={previewType.movement} bonus={(previewStats || previewType).movement - previewType.movement} final={(previewStats || previewType).movement} />
+          <StatRow label="INIT" base={previewType.initiative} bonus={(previewStats || previewType).initiative - previewType.initiative} final={(previewStats || previewType).initiative} />
+        </div>
+
+        {previewPassiveDef && (
+          <div className="preview-passive">
+            <h4>Passive: {previewPassiveDef.name}</h4>
+            <div className="passive-description">{previewPassiveDef.description}</div>
+          </div>
+        )}
+
+        {!previewPassiveDef && (
+          <div className="preview-no-passive">
+            <em>No passive selected</em>
+          </div>
+        )}
+
+        <div className="preview-skills">
+          <h4>Skills</h4>
+          {skills}
+        </div>
+
+        {isCurrentPlayer && !editingIdx && (
+          <button
+            className="preview-add-btn"
+            onClick={handleAddToBoard}
+            disabled={!selectedCell}
+          >
+            Add to Board
+          </button>
+        )}
+
+        {editingIdx !== null && isCurrentPlayer && (
+          <div className="preview-edit-actions">
+            <button
+              className="preview-delete-btn"
+              onClick={() => handleDeletePlaced(editingIdx)}
+            >
+              Delete Unit
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    previewSection = (
+      <div className="unit-preview empty">
+        <p>Select a unit type from the grid above</p>
+      </div>
+    );
+  }
+
+  // Placed units list
+  const placedUnits: React.ReactElement[] = [];
+  for (let i = 0; i < team.placed.length; i++) {
+    const pu = team.placed[i];
+    const td = UNIT_TYPE_DEFS[pu.typeId];
+    const isSelected = editingIdx === i;
+    placedUnits.push(
+      <div
+        key={i}
+        className={`roster-unit${isSelected ? " selected" : ""}`}
+        onClick={() => handleSelectPlacedUnit(i)}
+      >
+        <span className="roster-icon" style={{ background: td.color }}>
+          {td.icon}
+        </span>
+        <span className="roster-name">{td.name}</span>
+        {pu.passiveId ? (
+          <span className="roster-passive" title={PASSIVE_DEFS[pu.passiveId].description}>(<em>{PASSIVE_DEFS[pu.passiveId].name}</em>)</span>
+        ) : (
+          <span className="roster-no-passive">—</span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="screen active team-select">
-      <div className="phase-label">Select your team — 6 units, 1 passive each</div>
+      <div className="phase-label">Place your units on the map — 6 units required</div>
       <div className="teams-container">
-        {renderTeamPanel(0, "p1")}
-        {!isVsAI && renderTeamPanel(1, "p2")}
+        <div className="map-section">
+          <Board />
+          <div className="map-instructions">
+            Click a tile in your deployment zone to select it, then choose a unit and passive to place it.
+            Click a placed unit to edit or delete it.
+          </div>
+        </div>
+        <div className="side-panel">
+          <div className="team-select-layout">
+            <div className="team-select-col team-select-col-roster">
+              <h4>Placed Units</h4>
+              <div className="roster">{placedUnits}</div>
+              <div className="placed-count">{team.placed.length}/6 placed</div>
+            </div>
+            <div className="team-select-col team-select-col-combined">
+              <h4>Choose Unit</h4>
+              <div className="unit-cards">{unitCards}</div>
+              <h4>Choose Passive</h4>
+              <div className="passive-slots">{passivePicker}</div>
+            </div>
+            <div className="team-select-col team-select-col-preview">
+              <h4>Preview</h4>
+              {previewSection}
+            </div>
+          </div>
+        </div>
       </div>
       <button className="btn btn-primary confirm-area" onClick={() => confirmTeam()}>
         {isVsAI ? "Confirm & Start" : "Confirm Team"}

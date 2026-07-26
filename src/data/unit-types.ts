@@ -113,6 +113,18 @@ export const UNIT_TYPE_DEFS: Record<string, UnitTypeDef> = {
     skills: ["phase_shift", "void_strike"],
     color: "#8b5cf6",
   },
+  berserker: {
+    name: "Berserker",
+    icon: "Be",
+    description: "Self-sacrificing powerhouse. Trades HP for devastating close-range damage.",
+    hp: 7,
+    baseAtk: 0,
+    baseDef: 0,
+    movement: 3,
+    initiative: 4,
+    skills: ["soul_reave"],
+    color: "#dc2626",
+  },
 };
 
 export const UNIT_TYPE_IDS = Object.keys(UNIT_TYPE_DEFS);

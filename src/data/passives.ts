@@ -78,6 +78,12 @@ export const PASSIVE_DEFS: Record<string, PassiveDef> = {
     apply: (s) => ({ ...s, defense: s.defense - 1 }),
     recommended: ["rogue", "phantom"],
   },
+  regeneration: {
+    name: "Regeneration",
+    description: "Restores 1 HP at the start of each new round. Sustains self-sacrificing units.",
+    apply: (s) => ({ ...s }),
+    recommended: ["berserker"],
+  },
 };
 
 export const PASSIVE_IDS = Object.keys(PASSIVE_DEFS);

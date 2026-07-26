@@ -28,8 +28,7 @@ export function App() {
       return <Menu />;
     case "teamSelect":
       return <TeamSelect />;
-    case "deployP1":
-    case "deployP2":
+    case "deploy":
       return <Deployment />;
     case "battle":
       return <Battle />;

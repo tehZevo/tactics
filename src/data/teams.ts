@@ -77,5 +77,18 @@ export const PRESET_TEAMS: PresetTeam[] = [
 
 export function getRandomTeam(): Team {
   const preset = PRESET_TEAMS[Math.floor(Math.random() * PRESET_TEAMS.length)];
-  return { units: [...preset.units], placed: [] };
+  return {
+    placed: preset.units.map((unit, index) => ({
+      ...unit,
+      row: Math.floor(index / 6),
+      col: index % 6,
+      currentHp: 10,
+      ap: 0,
+      movement: 5,
+      initiative: 5,
+      poisonTurns: 0,
+      skillUsedThisTurn: false,
+      invulnerable: false,
+    })),
+  };
 }

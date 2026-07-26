@@ -8,13 +8,15 @@ export interface SkillDef {
   range: number;
   cooldown: number;
   description: string;
-  type: "attack" | "heal" | "buff" | "movement";
+  type: "attack" | "heal" | "buff" | "movement" | "apDrain";
   damage?: number;
   healAmount?: number;
   selfTarget?: boolean;
   aoe?: number;
   grantsInvulnerability?: boolean; // if true, makes user invulnerable until their next turn
   ignoresDefense?: boolean; // if true, ignores defender's defense stat
+  apDrain?: number; // amount of AP to drain from target
+  selfDamage?: number; // HP the user loses when using this skill
 }
 
 export const SKILL_DEFS: Record<string, SkillDef> = {
@@ -98,6 +100,15 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     description: "Teleport to any empty tile within range 3.",
     type: "movement",
     selfTarget: true,
+  },
+  soul_drain: {
+    name: "Soul Drain",
+    cost: 1,
+    range: 1,
+    cooldown: 1,
+    description: "Steal 1 AP from the target.",
+    type: "apDrain",
+    apDrain: 1,
   },
 
   // Geomancer
@@ -183,5 +194,17 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     type: "attack",
     damage: 3,
     ignoresDefense: true,
+  },
+
+  // Berserker
+  soul_reave: {
+    name: "Soul Reave",
+    cost: 2,
+    range: 1,
+    cooldown: 2,
+    description: "Tear into the enemy dealing 8 damage, but lose 2 HP in the process.",
+    type: "attack",
+    damage: 8,
+    selfDamage: 2,
   },
 };

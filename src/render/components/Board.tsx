@@ -6,6 +6,7 @@ import {
   getTurnUnit,
   isOwnUnit,
   selectTile,
+  placeUnit,
   currentMap,
 } from "../../state";
 import {
@@ -27,9 +28,23 @@ export function Board() {
       const tileClasses: string[] = ["tile"];
       if (!walkable) tileClasses.push("unwalkable");
 
-      if (c <= 2) tileClasses.push("deployment-zone");
-      if (c >= 7) tileClasses.push("deployment-zone");
+      // Deployment zone highlighting
+      if (state.screen === "deploy" || state.screen === "teamSelect") {
+        if (state.deployTurn === 0 && c <= 2) {
+          tileClasses.push("deployment-zone");
+        } else if (state.deployTurn === 1 && c >= 7) {
+          tileClasses.push("deployment-zone");
+        }
+        // Highlight selected cell
+        if (state.selectedDeployCell && state.selectedDeployCell.row === r && state.selectedDeployCell.col === c) {
+          tileClasses.push("selected");
+        }
+      } else {
+        if (c <= 2) tileClasses.push("deployment-zone");
+        if (c >= 7) tileClasses.push("deployment-zone");
+      }
 
+      // Battle phase highlights
       if (state.screen === "battle" && state.selectedUnit) {
         const turnUnit = getTurnUnit(state);
         if (turnUnit) {
@@ -66,7 +81,15 @@ export function Board() {
         }
       }
 
-      const unit = state.board[r][c];
+      // During deployment, only show current player's units
+      let unit = state.board[r][c];
+      if (state.screen === "deploy" && unit) {
+        const unitPlayer = unit.row < 5 ? 0 : 1;
+        if (unitPlayer !== state.deployTurn) {
+          unit = null; // Hide opponent's units
+        }
+      }
+
       let unitDiv: React.ReactElement | null = null;
 
       if (unit) {
@@ -115,7 +138,13 @@ export function Board() {
         <div
           key={`${r}-${c}`}
           className={tileClasses.join(" ")}
-          onClick={() => selectTile(r, c)}
+          onClick={() => {
+            if (state.screen === "deploy" || state.screen === "teamSelect") {
+              placeUnit(r, c);
+            } else {
+              selectTile(r, c);
+            }
+          }}
         >
           {unitDiv}
         </div>

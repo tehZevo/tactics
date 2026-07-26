@@ -1,8 +1,9 @@
 // ============================================================
 //  STATE / TYPES — interfaces and types
 // ============================================================
+import type { MapLayout } from "../data/maps.js";
 
-export type Screen = "menu" | "teamSelect" | "deployP1" | "deployP2" | "battle" | "victory";
+export type Screen = "menu" | "teamSelect" | "deploy" | "battle" | "victory";
 
 export interface PlacedUnit {
   typeId: string;
@@ -19,7 +20,6 @@ export interface PlacedUnit {
 }
 
 export interface Team {
-  units: { typeId: string; passiveId: string }[]; // ordered list of selected units
   placed: PlacedUnit[];
 }
 
@@ -28,10 +28,13 @@ export interface GameState {
   currentTeam: number; // which player's selection is being modified
   p1Team: Team;
   p2Team: Team;
+  map: MapLayout; // battle map layout
   // Deployment
   deployTurn: number; // 0 = P1, 1 = P2
-  deployIndex: number; // which unit of current player's team is being placed
-  deployQueue: { player: 0 | 1; index: number }[]; // alternating placement order
+  selectedDeployCell: { row: number; col: number } | null; // cell selected for placement
+  editingUnitIndex: number | null; // index into current player's placed array for editing
+  selectedUnitType: string | null; // unit type selected in picker
+  selectedPassiveId: string | null; // passive selected in picker
   // Battle
   turnOrder: { playerIndex: 0 | 1; unitIndex: number }[];
   currentTurnIndex: number; // index into turnOrder

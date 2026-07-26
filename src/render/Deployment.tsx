@@ -1,41 +1,162 @@
 /// <reference types="react" />
 import React from 'react';
-import { state, placeUnit } from "../state";
-import { UNIT_TYPE_DEFS } from "../data/index";
+import { useState, useEffect } from 'react';
+import { state, placeUnit, selectUnitType, selectPassiveId, confirmTeam, getIsVsAI, subscribe } from "../state";
+import {
+  UNIT_TYPE_DEFS,
+  UNIT_TYPE_IDS,
+  PASSIVE_DEFS,
+  PASSIVE_IDS,
+} from "../data/index";
 import { Board } from "./components/Board";
 
 export function Deployment() {
-  const queueEntry = state.deployQueue[state.deployIndex];
-  const isP1 = queueEntry.player === 0;
-  const currentTeam = isP1 ? state.p1Team : state.p2Team;
-  const currentUnit = currentTeam.units[queueEntry.index];
-  const unitName = currentUnit ? UNIT_TYPE_DEFS[currentUnit.typeId].name : "—";
+  const [, setVersion] = useState(0);
 
-  const placedEls: React.ReactElement[] = [];
-  for (let i = 0; i < currentTeam.placed.length; i++) {
-    const pu = currentTeam.placed[i];
-    const td = UNIT_TYPE_DEFS[pu.typeId];
-    placedEls.push(
-      <div key={i} className="placed-unit">
-        <span style={{ color: td.color }}>{td.icon}</span>{" "}
-        {td.name} <span className="pos">({pu.row},{pu.col})</span>
-      </div>
-    );
-  }
+  useEffect(() => {
+    return subscribe(() => {
+      setVersion(v => v + 1);
+    });
+  }, []);
+
+  const deployTurn = state.deployTurn;
+  const currentTeam = deployTurn === 0 ? state.p1Team : state.p2Team;
+  const isVsAI = getIsVsAI();
+
+  const handlePlaceUnit = (row: number, col: number) => {
+    if (state.screen !== "deploy") return;
+    
+    // If clicking on a placed unit, remove it
+    const unit = state.board[row][col];
+    if (unit) {
+      const unitPlayer = unit.row < 5 ? 0 : 1;
+      if (unitPlayer === deployTurn) {
+        // Find and remove from placed array
+        const index = currentTeam.placed.indexOf(unit);
+        if (index >= 0) {
+          currentTeam.placed.splice(index, 1);
+          state.board[row][col] = null;
+          setVersion(v => v + 1);
+        }
+      }
+      return;
+    }
+
+    // Place unit at this location
+    if (!state.selectedUnitType) return;
+    if (currentTeam.placed.length >= 6) return;
+
+    const typeId = state.selectedUnitType;
+    const passiveId = state.selectedPassiveId || "";
+    
+    const placedUnit = {
+      typeId,
+      passiveId,
+      row,
+      col,
+      currentHp: UNIT_TYPE_DEFS[typeId].hp,
+      ap: 0,
+      movement: UNIT_TYPE_DEFS[typeId].movement,
+      initiative: UNIT_TYPE_DEFS[typeId].initiative,
+      poisonTurns: 0,
+      skillUsedThisTurn: false,
+      invulnerable: false,
+    };
+
+    currentTeam.placed.push(placedUnit);
+    state.board[row][col] = placedUnit;
+    setVersion(v => v + 1);
+  };
+
+  const handleSelectUnit = (typeId: string) => {
+    selectUnitType(typeId);
+  };
+
+  const handleSelectPassive = (passiveId: string) => {
+    selectPassiveId(passiveId);
+  };
+
+  const handleConfirm = () => {
+    if (currentTeam.placed.length >= 6) {
+      if (isVsAI && deployTurn === 0) {
+        // AI mode: both teams ready, start battle
+        confirmTeam();
+      } else if (deployTurn === 0) {
+        // P1 done, P2 deploys
+        state.deployTurn = 1;
+        setVersion(v => v + 1);
+      } else {
+        // Both done, start battle
+        confirmTeam();
+      }
+    }
+  };
 
   return (
     <div className="screen active deployment-screen">
       <div className="deployment-topbar">
         <span className="phase-text">Deploy your units</span>
-        <span className="turn-text">Placing: {unitName} (Player {queueEntry.player + 1})</span>
+        <span className="turn-text">
+          Player {deployTurn + 1} — Select a unit, choose a passive, then click a tile in your zone to place it.
+        </span>
       </div>
       <div className="deployment-board-area">
         <div className="deployment-info">
-          <h4>Placed Units</h4>
-          {placedEls.length > 0 ? placedEls : <em style={{ color: "#4b5563" }}>None yet</em>}
-          <div className="placed-unit">
-            <strong>Remaining:</strong> {6 - currentTeam.placed.length}/6
+          <h4>Choose Unit</h4>
+          <div className="deployment-roster">
+            {UNIT_TYPE_IDS.map((typeId) => {
+              const def = UNIT_TYPE_DEFS[typeId];
+              const isSelected = state.selectedUnitType === typeId;
+              const isPlaced = currentTeam.placed.some(p => p.typeId === typeId);
+              return (
+                <div
+                  key={typeId}
+                  className={`deployment-roster-item${isSelected ? " active" : ""}${isPlaced ? " disabled" : ""}`}
+                  onClick={() => !isPlaced && handleSelectUnit(typeId)}
+                >
+                  <div className="deployment-roster-icon" style={{ background: def.color }}>
+                    {def.icon}
+                  </div>
+                  <div className="deployment-roster-name">{def.name}</div>
+                </div>
+              );
+            })}
           </div>
+          
+          {state.selectedUnitType && (
+            <>
+              <h4>Choose Passive</h4>
+              <div className="passive-slots">
+                {PASSIVE_IDS.map((pid) => {
+                  const passiveDef = PASSIVE_DEFS[pid];
+                  const recommended = PASSIVE_IDS.filter(p => 
+                    PASSIVE_DEFS[p].recommended && PASSIVE_DEFS[p].recommended.includes(state.selectedUnitType!)
+                  );
+                  const isRecommended = recommended.includes(pid);
+                  const isSelected = state.selectedPassiveId === pid;
+                  return (
+                    <div key={pid} className={`passive-grid-btn${isSelected ? " selected" : ""}${isRecommended ? " recommended" : ""}`}>
+                      <button onClick={() => handleSelectPassive(pid)}>
+                        {passiveDef.name}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <div className="placed-unit">
+            <strong>Placed:</strong> {currentTeam.placed.length}/6
+          </div>
+          
+          <button 
+            className="btn btn-primary" 
+            onClick={handleConfirm}
+            disabled={currentTeam.placed.length < 6}
+          >
+            {isVsAI && deployTurn === 0 ? "Confirm & Start" : "Confirm & Next"}
+          </button>
         </div>
         <Board />
       </div>
