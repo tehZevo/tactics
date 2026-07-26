@@ -26,7 +26,7 @@ export const UNIT_TYPE_DEFS: Record<string, UnitTypeDef> = {
     baseDef: 1,
     movement: 3,
     initiative: 3,
-    skills: ["power_strike", "war_cry"],
+    skills: ["power_strike", "whirlwind"],
     color: "#78716c",
   },
   archer: {
@@ -68,13 +68,13 @@ export const UNIT_TYPE_DEFS: Record<string, UnitTypeDef> = {
   geomancer: {
     name: "Geomancer",
     icon: "G",
-    description: "AoE damage dealer with cataclysm and earth shield.",
+    description: "AoE damage dealer with cataclysm and seism.",
     hp: 6,
     baseAtk: 0,
     baseDef: 0,
     movement: 3,
     initiative: 2,
-    skills: ["cataclysm", "earth_shield"],
+    skills: ["cataclysm", "seism"],
     color: "#b45309",
   },
   paladin: {

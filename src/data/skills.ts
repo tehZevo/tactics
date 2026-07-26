@@ -15,9 +15,6 @@ export interface SkillDef {
   aoe?: number;
   grantsInvulnerability?: boolean; // if true, makes user invulnerable until their next turn
   ignoresDefense?: boolean; // if true, ignores defender's defense stat
-  stat?: "attack" | "defense";
-  statMod?: number;
-  duration?: number;
 }
 
 export const SKILL_DEFS: Record<string, SkillDef> = {

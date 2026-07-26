@@ -157,10 +157,6 @@ export function getEffectiveStats(unit: PlacedUnit): { attack: number; defense: 
     atk += passiveStats.attack;
     def += passiveStats.defense;
   }
-  for (const buff of unit.buffs) {
-    if (buff.stat === "attack") atk += buff.amount;
-    if (buff.stat === "defense") def += buff.amount;
-  }
   return { attack: Math.max(atk, 0), defense: Math.max(def, 0) };
 }
 

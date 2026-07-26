@@ -13,7 +13,6 @@ export interface PlacedUnit {
   ap: number;
   movement: number;
   initiative: number;
-  buffs: { stat: "attack" | "defense"; amount: number; turns: number }[];
   poisonTurns: number; // remaining poison turns (damage per turn)
   skillUsedThisTurn: boolean; // track if skill was used this turn (1 skill limit)
   invulnerable: boolean; // cannot be targeted by attacks/heals until next turn

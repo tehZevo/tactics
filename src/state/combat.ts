@@ -211,12 +211,6 @@ export function advanceTurn(state: GameState): void {
       unit.ap = Math.min(unit.ap + apGain, 6);
       unit.skillUsedThisTurn = false;
 
-      // Tick buffs
-      unit.buffs = unit.buffs.filter((b: { stat: string; amount: number; turns: number }) => {
-        b.turns--;
-        return b.turns > 0;
-      });
-
       // Apply poison
       if (unit.poisonTurns > 0) {
         unit.currentHp -= 2;
