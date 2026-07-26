@@ -9,12 +9,13 @@ import {
 } from "../state";
 import { SidePanel, TurnIndicator, UnitDetail, BattleLog } from "./components/BattleComponents";
 import { Board } from "./components/Board";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 let _isVsAI = getIsVsAI();
 
 export function Battle() {
   const [version, setVersion] = useState(0);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     return subscribe(() => {
@@ -35,8 +36,10 @@ export function Battle() {
 
   return (
     <div className="screen active battle-screen">
-      <SidePanel playerIndex={0} />
-      <SidePanel playerIndex={1} />
+      <div className="battle-top-row">
+        <SidePanel playerIndex={0} />
+        <SidePanel playerIndex={1} />
+      </div>
       <div className="battle-center">
         <TurnIndicator />
         <Board />
@@ -44,10 +47,20 @@ export function Battle() {
           End Turn
         </button>
       </div>
-      <div className="battle-right">
+      <div className="battle-bottom-row">
         <UnitDetail />
         <BattleLog />
       </div>
     </div>
   );
+}
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(typeof window !== "undefined" && window.innerWidth <= 768);
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return mobile;
 }

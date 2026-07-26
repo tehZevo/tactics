@@ -1,5 +1,6 @@
 /// <reference types="react" />
 import React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   state,
   getReachableTiles,
@@ -18,9 +19,42 @@ import {
 } from "../../data/index";
 import { getUnitMaxHp } from "../../state";
 
+function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>) {
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setWidth(rect.width);
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return width;
+}
+
 export function Board() {
   const map = currentMap();
   const tiles: React.ReactElement[] = [];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerWidth = useContainerWidth(containerRef);
+
+  const maxTileSize = Math.floor((containerWidth - 8) / BOARD_COLS);
+  const tileSize = Math.min(Math.max(maxTileSize, 28), 52);
+  const gap = Math.min(Math.max(tileSize * 0.02, 1), 2);
+  const unitSize = Math.max(Math.floor(tileSize * 0.78), 22);
+  const hpBarWidth = Math.max(Math.floor(unitSize * 0.8), 16);
+  const apDotSize = Math.max(Math.floor(unitSize * 0.1), 3);
+  const tuFontSize = Math.max(Math.floor(tileSize * 0.5), 9);
+  const tuHpBarHeight = Math.max(Math.floor(unitSize * 0.08), 2);
+  const tuHpBarGap = Math.max(Math.floor(unitSize * 0.04), 1);
 
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
@@ -115,21 +149,36 @@ export function Board() {
         const apDots: React.ReactElement[] = [];
         for (let d = 0; d < MAX_AP; d++) {
           apDots.push(
-            <div className={"tu-ap-dot" + (d < unit.ap ? " filled" : "")} />
+            <div
+              key={d}
+              className={"tu-ap-dot" + (d < unit.ap ? " filled" : "")}
+              style={{ width: `${apDotSize}px`, height: `${apDotSize}px` }}
+            />
           );
         }
 
         unitDiv = (
           <div
             className={unitClasses.join(" ")}
-            style={{ background: td.color }}
+            style={{
+              background: td.color,
+              width: `${unitSize}px`,
+              height: `${unitSize}px`,
+              fontSize: `${tuFontSize}px`,
+            }}
           >
             <div className="tu-name">{td.icon}</div>
             {unit.invulnerable && <div className="tu-invulnerable">?</div>}
-            <div className="tu-hp-bar">
-              <div className={hpFillClasses.join(" ")} style={{ width: `${hpPct}%` }} />
+            <div
+              className={hpBarClasses.join(" ")}
+              style={{ width: `${hpBarWidth}px`, height: `${tuHpBarHeight}px` }}
+            >
+              <div
+                className={hpFillClasses.join(" ")}
+                style={{ width: `${hpPct}%` }}
+              />
             </div>
-            <div className="tu-ap-dots">{apDots}</div>
+            <div className="tu-ap-dots" style={{ gap: `${Math.max(tuHpBarGap, 1)}px` }}>{apDots}</div>
           </div>
         );
       }
@@ -138,6 +187,7 @@ export function Board() {
         <div
           key={`${r}-${c}`}
           className={tileClasses.join(" ")}
+          style={{ width: `${tileSize}px`, height: `${tileSize}px` }}
           onClick={() => {
             if (state.screen === "deploy" || state.screen === "teamSelect") {
               placeUnit(r, c);
@@ -153,8 +203,15 @@ export function Board() {
   }
 
   return (
-    <div className="board-wrapper">
-      <div className="board" style={{ gridTemplateColumns: `repeat(${BOARD_COLS}, 52px)`, gridTemplateRows: `repeat(${BOARD_ROWS}, 52px)` }}>
+    <div className="board-wrapper" ref={containerRef}>
+      <div
+        className="board"
+        style={{
+          gridTemplateColumns: `repeat(${BOARD_COLS}, ${tileSize}px)`,
+          gridTemplateRows: `repeat(${BOARD_ROWS}, ${tileSize}px)`,
+          gap: `${gap}px`,
+        }}
+      >
         {tiles}
       </div>
     </div>
