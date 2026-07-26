@@ -32,7 +32,7 @@ describe("Game Engine — Combat", () => {
       [{ typeId: "archer", passiveId: "nimble", col: 0, row: 3 }]
     );
 
-    // Give warrior more AP
+    // Warrior starts with 3 AP; advanceTurn grants +1 → 4, power_strike costs 1 → 3
     const warrior = getUnitFromState(state, 0, 0)!;
     warrior.ap = 3;
 
@@ -45,7 +45,7 @@ describe("Game Engine — Combat", () => {
 
     const attackerUnit = getUnitFromState(result, 0, 0);
     expect(attackerUnit).not.toBeNull();
-    expect(attackerUnit!.ap).toBe(2);
+    expect(attackerUnit!.ap).toBe(3);
   });
 
   it("should not allow attack if not enough AP", () => {

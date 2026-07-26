@@ -2,7 +2,7 @@
 
 ## Setup
 
-Each player builds a team of **6 units** chosen from 8 available types. Each unit is assigned a **passive trait** that modifies its stats or grants a special ability. Teams are placed on opposite sides of a random 6x10 map — Player 1 deploys in columns 0–2, Player 2 in columns 7–9. The battle begins once both players have placed all 6 units.
+Each player builds a team of **6 units** chosen from 8 available types. Each unit is assigned a **passive trait** that modifies its stats or grants a special ability. Teams are placed on opposite sides of a random 12x12 map — Player 1 deploys in columns 0–2, Player 2 in columns 9–11. The battle begins once both players have placed all 6 units.
 
 ## Units
 
@@ -119,7 +119,7 @@ The Phantom's **Phase Shift** makes it untargetable by any attacks or heals unti
 
 ## Maps
 
-8 random symmetric maps are available. Each has walkable tiles (open) and unwalkable terrain (blocked). Common terrain features include rivers, mountains, forests, and chokepoints.
+8 random symmetric maps are available. Each has walkable tiles (open) and unwalkable terrain (blocked). Common terrain features include rivers, mountains, forests, and chokepoints. A special **Test Map** with no obstacles is available for testing.
 
 ## Tips
 

@@ -4,7 +4,7 @@ A tactical grid-based RPG with team building, deployment, and turn-based combat.
 
 ## Overview
 
-Build a team of 6 units, deploy them on a symmetrical 6x10 map, then fight through turn-based tactical combat. Choose from 8 unit types, customize each with a passive trait, and outmaneuver your opponent to eliminate all enemy units.
+Build a team of 6 units, deploy them on a symmetrical 12x12 map, then fight through turn-based tactical combat. Choose from 8 unit types, customize each with a passive trait, and outmaneuver your opponent to eliminate all enemy units.
 
 ## Features
 

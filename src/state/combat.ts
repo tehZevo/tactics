@@ -15,6 +15,7 @@ import {
   getEffectiveStats,
   getUnitMaxHp,
   getUnitDisplayName,
+  getPlayerIndex,
   isOwnUnit,
   addLog,
 } from "./helpers.js";
@@ -123,8 +124,8 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
       state.board[turnUnit.row][turnUnit.col] = turnUnit;
       state.board[target.row][target.col] = target;
 
-      const turnTeam = turnUnit.row < 5 ? 0 : 1;
-      const targetTeam = target.row < 5 ? 0 : 1;
+      const turnTeam = getPlayerIndex(turnUnit);
+      const targetTeam = getPlayerIndex(target);
       const isAlly = turnTeam === targetTeam;
       addLog(state, `${getUnitDisplayName(turnUnit)} swaps with ${getUnitDisplayName(target)}${isAlly ? " (ally)" : " (enemy)"}`);
 

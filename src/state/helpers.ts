@@ -145,17 +145,21 @@ export function calculateDamage(attacker: PlacedUnit, defender: PlacedUnit, skil
 }
 
 export function getEffectiveStats(unit: PlacedUnit): { attack: number; defense: number } {
-  let atk = UNIT_TYPE_DEFS[unit.typeId].baseAtk;
-  let def = UNIT_TYPE_DEFS[unit.typeId].baseDef;
-  if (unit.passiveId && PASSIVE_DEFS[unit.passiveId]) {
+  return getEffectiveStatsFor(unit.typeId, unit.passiveId);
+}
+
+export function getEffectiveStatsFor(typeId: string, passiveId: string | null | undefined): { attack: number; defense: number } {
+  let atk = UNIT_TYPE_DEFS[typeId].baseAtk;
+  let def = UNIT_TYPE_DEFS[typeId].baseDef;
+  if (passiveId && PASSIVE_DEFS[passiveId]) {
     const baseStats = {
-      hp: UNIT_TYPE_DEFS[unit.typeId].hp,
-      attack: UNIT_TYPE_DEFS[unit.typeId].baseAtk,
-      defense: UNIT_TYPE_DEFS[unit.typeId].baseDef,
-      movement: UNIT_TYPE_DEFS[unit.typeId].movement,
-      initiative: UNIT_TYPE_DEFS[unit.typeId].initiative,
+      hp: UNIT_TYPE_DEFS[typeId].hp,
+      attack: UNIT_TYPE_DEFS[typeId].baseAtk,
+      defense: UNIT_TYPE_DEFS[typeId].baseDef,
+      movement: UNIT_TYPE_DEFS[typeId].movement,
+      initiative: UNIT_TYPE_DEFS[typeId].initiative,
     };
-    const passiveStats = PASSIVE_DEFS[unit.passiveId].apply(baseStats);
+    const passiveStats = PASSIVE_DEFS[passiveId].apply(baseStats);
     atk += passiveStats.attack;
     def += passiveStats.defense;
   }
@@ -163,19 +167,18 @@ export function getEffectiveStats(unit: PlacedUnit): { attack: number; defense: 
 }
 
 export function isOwnUnit(turnUnit: PlacedUnit, target: PlacedUnit): boolean {
-  if (turnUnit.playerIndex !== undefined && target.playerIndex !== undefined) {
-    return turnUnit.playerIndex === target.playerIndex;
-  }
-  const turnTeam = turnUnit.row < 5 ? 0 : 1;
-  const targetTeam = target.row < 5 ? 0 : 1;
-  return turnTeam === targetTeam;
+  return getPlayerIndex(turnUnit) === getPlayerIndex(target);
 }
 
 export function getUnitMaxHp(unit: PlacedUnit): number {
-  const typeDef = UNIT_TYPE_DEFS[unit.typeId];
+  return getUnitMaxHpFor(unit.typeId, unit.passiveId);
+}
+
+export function getUnitMaxHpFor(typeId: string, passiveId: string | null | undefined): number {
+  const typeDef = UNIT_TYPE_DEFS[typeId];
   let hp = typeDef.hp;
-  if (unit.passiveId && PASSIVE_DEFS[unit.passiveId]) {
-    const stats = PASSIVE_DEFS[unit.passiveId].apply({
+  if (passiveId && PASSIVE_DEFS[passiveId]) {
+    const stats = PASSIVE_DEFS[passiveId].apply({
       hp: typeDef.hp,
       attack: typeDef.baseAtk,
       defense: typeDef.baseDef,
@@ -185,6 +188,11 @@ export function getUnitMaxHp(unit: PlacedUnit): number {
     hp = stats.hp;
   }
   return hp;
+}
+
+export function getPlayerIndex(unit: PlacedUnit): 0 | 1 {
+  if (unit.playerIndex !== undefined) return unit.playerIndex;
+  return unit.row < 6 ? 0 : 1;
 }
 
 export function getUnitDisplayName(unit: PlacedUnit): string {

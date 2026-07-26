@@ -1,7 +1,7 @@
 /// <reference types="react" />
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { state, placeUnit, selectUnitType, selectPassiveId, confirmTeam, getIsVsAI, subscribe, addUnitToBoard, setPassive } from "../state";
+import { state, placeUnit, selectUnitType, selectPassiveId, confirmTeam, getIsVsAI, subscribe, addUnitToBoard, setPassive, getPlayerIndex } from "../state";
 import {
   UNIT_TYPE_DEFS,
   UNIT_TYPE_IDS,
@@ -90,7 +90,7 @@ export function Deployment() {
     // If clicking on a placed unit, remove it
     const unit = state.board[row][col];
     if (unit) {
-      const unitPlayer = unit.row < 5 ? 0 : 1;
+      const unitPlayer = getPlayerIndex(unit);
       if (unitPlayer === deployTurn) {
         // Find and remove from placed array
         const index = currentTeam.placed.indexOf(unit);

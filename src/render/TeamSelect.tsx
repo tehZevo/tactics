@@ -8,6 +8,10 @@ import {
   selectPassiveId,
   confirmTeam,
   getIsVsAI,
+  createPlacedUnit,
+  getPlayerIndex,
+  getEffectiveStatsFor,
+  getUnitMaxHpFor,
 } from "../state";
 import { subscribe } from "../state";
 import {
@@ -20,15 +24,9 @@ import { SKILL_DEFS } from "../data/skills.js";
 import { PRESET_TEAMS } from "../data/teams.js";
 import { Board } from "./components/Board";
 
-function applyPassive(typeDef: { hp: number; baseAtk: number; baseDef: number; movement: number; initiative: number }, passiveId: string) {
-  if (!passiveId || !PASSIVE_DEFS[passiveId]) return null;
-  return PASSIVE_DEFS[passiveId].apply({
-    hp: typeDef.hp,
-    attack: typeDef.baseAtk,
-    defense: typeDef.baseDef,
-    movement: typeDef.movement,
-    initiative: typeDef.initiative,
-  });
+function applyPassive(typeDef: any, passiveId: string) {
+  if (!passiveId || !PASSIVE_DEFS[passiveId]) return typeDef;
+  return PASSIVE_DEFS[passiveId].apply(typeDef);
 }
 
 function StatRow({ label, base, bonus, final: fFinal }: { label: string; base: number; bonus: number; final: number }) {
@@ -131,7 +129,20 @@ function UnitPreview({
 
   const typeDef = UNIT_TYPE_DEFS[unitTypeId];
   const passiveDef = passiveId ? PASSIVE_DEFS[passiveId] : null;
-  const stats = applyPassive(typeDef, passiveId || "");
+  const effectiveStats = passiveId && PASSIVE_DEFS[passiveId]
+    ? PASSIVE_DEFS[passiveId].apply({
+        hp: typeDef.hp,
+        attack: typeDef.baseAtk,
+        defense: typeDef.baseDef,
+        movement: typeDef.movement,
+        initiative: typeDef.initiative,
+      })
+    : null;
+
+  const hpBonus = effectiveStats ? effectiveStats.hp - typeDef.hp : 0;
+  const atkStats = getEffectiveStatsFor(unitTypeId, passiveId);
+  const movementBonus = effectiveStats ? effectiveStats.movement - typeDef.movement : 0;
+  const initiativeBonus = effectiveStats ? effectiveStats.initiative - typeDef.initiative : 0;
 
   return (
     <div className="unit-preview">
@@ -139,11 +150,11 @@ function UnitPreview({
 
       <div className="preview-stats">
         <h4>Stats</h4>
-        <StatRow label="HP" base={typeDef.hp} bonus={(stats || typeDef).hp - typeDef.hp} final={(stats || typeDef).hp} />
-        <StatRow label="ATK" base={typeDef.baseAtk} bonus={(stats ? stats.attack : typeDef.baseAtk) - typeDef.baseAtk} final={stats ? stats.attack : typeDef.baseAtk} />
-        <StatRow label="DEF" base={typeDef.baseDef} bonus={(stats ? stats.defense : typeDef.baseDef) - typeDef.baseDef} final={stats ? stats.defense : typeDef.baseDef} />
-        <StatRow label="SPD" base={typeDef.movement} bonus={(stats || typeDef).movement - typeDef.movement} final={(stats || typeDef).movement} />
-        <StatRow label="INIT" base={typeDef.initiative} bonus={(stats || typeDef).initiative - typeDef.initiative} final={(stats || typeDef).initiative} />
+        <StatRow label="HP" base={typeDef.hp} bonus={hpBonus} final={getUnitMaxHpFor(unitTypeId, passiveId)} />
+        <StatRow label="ATK" base={typeDef.baseAtk} bonus={atkStats.attack - typeDef.baseAtk} final={atkStats.attack} />
+        <StatRow label="DEF" base={typeDef.baseDef} bonus={atkStats.defense - typeDef.baseDef} final={atkStats.defense} />
+        <StatRow label="SPD" base={typeDef.movement} bonus={movementBonus} final={typeDef.movement + movementBonus} />
+        <StatRow label="INIT" base={typeDef.initiative} bonus={initiativeBonus} final={typeDef.initiative + initiativeBonus} />
       </div>
 
       {passiveDef ? (
@@ -305,40 +316,13 @@ export function TeamSelect() {
     state.selectedPassiveId = null;
     state.editingUnitIndex = null;
 
+    const playerIndex = team === p1Team ? 0 : 1;
+
     // Place preset units
     preset.units.forEach((unit, index) => {
-      const def = UNIT_TYPE_DEFS[unit.typeId];
-      const stats = PASSIVE_DEFS[unit.passiveId]
-        ? PASSIVE_DEFS[unit.passiveId].apply({
-            hp: def.hp,
-            attack: def.baseAtk,
-            defense: def.baseDef,
-            movement: def.movement,
-            initiative: def.initiative,
-          })
-        : {
-            hp: def.hp,
-            attack: def.baseAtk,
-            defense: def.baseDef,
-            movement: def.movement,
-            initiative: def.initiative,
-          };
-
       const row = Math.floor(index / 6);
       const col = index % 6;
-      const placedUnit = {
-        typeId: unit.typeId,
-        passiveId: unit.passiveId,
-        row,
-        col,
-        currentHp: stats.hp,
-        ap: 0,
-        movement: stats.movement,
-        initiative: stats.initiative,
-        poisonTurns: 0,
-        skillUsedThisTurn: false,
-        invulnerable: false,
-      };
+      const placedUnit = createPlacedUnit(unit.typeId, unit.passiveId, row, col, playerIndex);
 
       team.placed.push(placedUnit);
       state.board[row][col] = placedUnit;
@@ -358,61 +342,154 @@ export function TeamSelect() {
           ? "Place your units on the map — 6 units required"
           : "Player 2: Place your units on the map — 6 units required"}
       </div>
-      <div className="teams-container">
-        <div className="teams-main">
-          <div className="side-panel">
-            <div className="team-select-col">
-              <h4>Placed Units</h4>
-              <RosterList
-                placed={team.placed}
-                editingIdx={editingIdx}
-                onSelect={handleSelectPlacedUnit}
-              />
-              <div className="placed-count">{team.placed.length}/6 placed</div>
-              <h4>Prebuilt Teams</h4>
-              <PresetTeamList
-                placedCount={team.placed.length}
-                placedUnits={team.placed}
-                onSelect={handleSelectPreset}
-              />
-              <h4>Choose Unit</h4>
-              <UnitCardGrid
-                selectedUnitType={state.selectedUnitType}
-                onSelect={handleSelectUnitType}
-              />
-              <h4>Choose Passive</h4>
-              {unitTypeId && (
-                <PassiveGrid
-                  unitTypeId={unitTypeId}
-                  currentPassiveId={previewPassiveId}
-                  onSelect={handleSelectPassive}
-                />
-              )}
-            </div>
-          </div>
-          <div className="map-section">
-            <Board />
-            <div className="map-instructions">
-              Click a tile in your deployment zone to select it, then choose a unit and passive to place it.
-              Click a placed unit to edit or delete it.
-            </div>
-          </div>
-          <div className="unit-preview-panel">
-            <UnitPreview
-              unitTypeId={unitTypeId}
-              passiveId={previewPassiveId}
-              isCurrentPlayer={isCurrentPlayer}
-              editingIdx={editingIdx}
-              onDeleteUnit={handleDeletePlaced}
-            />
-          </div>
-        </div>
-      </div>
+      <TeamSelectLayout
+        unitTypeId={unitTypeId}
+        previewPassiveId={previewPassiveId}
+        isCurrentPlayer={isCurrentPlayer}
+        editingIdx={editingIdx}
+        placed={team.placed}
+        onSelectPlaced={handleSelectPlacedUnit}
+        onUnitSelect={handleSelectUnitType}
+        onPassiveSelect={handleSelectPassive}
+        onPresetSelect={handleSelectPreset}
+        onDeleteUnit={handleDeletePlaced}
+      />
       <button className="btn btn-primary confirm-area" onClick={() => confirmTeam()}>
         {isVsAI
           ? (team.placed.length >= 6 ? "Start Battle" : `Place Units (${team.placed.length}/6)`)
           : (state.deployTurn === 0 ? "Confirm Team" : "Start Battle")}
       </button>
+    </div>
+  );
+}
+
+interface LayoutProps {
+  unitTypeId: string | null;
+  previewPassiveId: string | null;
+  isCurrentPlayer: boolean;
+  editingIdx: number | null;
+  placed: { typeId: string; passiveId: string }[];
+  onSelectPlaced: (index: number) => void;
+  onUnitSelect: (typeId: string) => void;
+  onPassiveSelect: (passiveId: string) => void;
+  onPresetSelect: (index: number) => void;
+  onDeleteUnit: (index: number) => void;
+}
+
+function TeamSelectLayout({
+  unitTypeId,
+  previewPassiveId,
+  isCurrentPlayer,
+  editingIdx,
+  placed,
+  onSelectPlaced,
+  onUnitSelect,
+  onPassiveSelect,
+  onPresetSelect,
+  onDeleteUnit,
+}: LayoutProps) {
+  return (
+    <div className="teams-container">
+      <div className="teams-main">
+        <SidePanel
+          placed={placed}
+          editingIdx={editingIdx}
+          onSelectPlaced={onSelectPlaced}
+          onUnitSelect={onUnitSelect}
+          onPassiveSelect={onPassiveSelect}
+          onPresetSelect={onPresetSelect}
+        />
+        <MapSection />
+        <PreviewPanel
+          unitTypeId={unitTypeId}
+          passiveId={previewPassiveId}
+          isCurrentPlayer={isCurrentPlayer}
+          editingIdx={editingIdx}
+          onDeleteUnit={onDeleteUnit}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SidePanel({
+  placed,
+  editingIdx,
+  onSelectPlaced,
+  onUnitSelect,
+  onPassiveSelect,
+  onPresetSelect,
+}: {
+  placed: { typeId: string; passiveId: string }[];
+  editingIdx: number | null;
+  onSelectPlaced: (index: number) => void;
+  onUnitSelect: (typeId: string) => void;
+  onPassiveSelect: (passiveId: string) => void;
+  onPresetSelect: (index: number) => void;
+}) {
+  return (
+    <div className="side-panel">
+      <div className="team-select-col">
+        <h4>Placed Units</h4>
+        <RosterList placed={placed} editingIdx={editingIdx} onSelect={onSelectPlaced} />
+        <div className="placed-count">{placed.length}/6 placed</div>
+        <h4>Prebuilt Teams</h4>
+        <PresetTeamList placedCount={placed.length} placedUnits={placed} onSelect={onPresetSelect} />
+        <h4>Choose Unit</h4>
+        <UnitCardGrid selectedUnitType={state.selectedUnitType} onSelect={onUnitSelect} />
+        <h4>Choose Passive</h4>
+        {editingIdx !== null ? (
+          <PassiveGrid
+            unitTypeId={placed[editingIdx]?.typeId || state.selectedUnitType || ""}
+            currentPassiveId={placed[editingIdx]?.passiveId || state.selectedPassiveId}
+            onSelect={onPassiveSelect}
+          />
+        ) : (
+          <PassiveGrid
+            unitTypeId={state.selectedUnitType || ""}
+            currentPassiveId={state.selectedPassiveId}
+            onSelect={onPassiveSelect}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MapSection() {
+  return (
+    <div className="map-section">
+      <Board />
+      <div className="map-instructions">
+        Click a tile in your deployment zone to select it, then choose a unit and passive to place it.
+        Click a placed unit to edit or delete it.
+      </div>
+    </div>
+  );
+}
+
+function PreviewPanel({
+  unitTypeId,
+  passiveId,
+  isCurrentPlayer,
+  editingIdx,
+  onDeleteUnit,
+}: {
+  unitTypeId: string | null;
+  passiveId: string | null;
+  isCurrentPlayer: boolean;
+  editingIdx: number | null;
+  onDeleteUnit: (index: number) => void;
+}) {
+  return (
+    <div className="unit-preview-panel">
+      <UnitPreview
+        unitTypeId={unitTypeId}
+        passiveId={passiveId}
+        isCurrentPlayer={isCurrentPlayer}
+        editingIdx={editingIdx}
+        onDeleteUnit={onDeleteUnit}
+      />
     </div>
   );
 }

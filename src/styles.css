@@ -1010,6 +1010,19 @@ body {
 .end-turn-btn {
   flex-shrink: 0;
 }
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: center;
+}
+.action-bar .btn {
+  flex-shrink: 0;
+}
+.action-bar .btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* Unit panel (right side) */
 .unit-panel {

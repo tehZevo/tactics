@@ -8,11 +8,13 @@ import type { PlacedUnit } from "../state/types.js";
 import { UNIT_TYPE_DEFS } from "../data/index.js";
 
 export function createTestMap(): MapLayout {
-  const grid: boolean[][] = Array.from({ length: 6 }, () =>
-    Array.from({ length: 10 }, () => true)
+  const grid: boolean[][] = Array.from({ length: 12 }, () =>
+    Array.from({ length: 12 }, () => true)
   );
-  grid[2][4] = false;
-  grid[2][5] = false;
+  grid[5][5] = false;
+  grid[5][6] = false;
+  grid[6][5] = false;
+  grid[6][6] = false;
   return { name: "Test Map", grid };
 }
 
@@ -60,8 +62,8 @@ export function createTestState(): GameState {
     turnOrder: [],
     currentTurnIndex: 0,
     selectedUnit: null,
-    board: Array.from({ length: 6 }, () =>
-      Array.from({ length: 10 }, () => null)
+    board: Array.from({ length: 12 }, () =>
+      Array.from({ length: 12 }, () => null)
     ),
     log: [],
     winner: null,
@@ -101,7 +103,7 @@ export function startTestBattle(
   });
 
   p2Units.forEach((u) => {
-    const unit = defaultUnit(u.typeId, u.passiveId, 1, u.row ?? 5, u.col);
+    const unit = defaultUnit(u.typeId, u.passiveId, 1, u.row ?? 11, u.col);
     p2Team.placed.push(unit);
   });
 

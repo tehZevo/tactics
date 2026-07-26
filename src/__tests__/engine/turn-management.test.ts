@@ -22,7 +22,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const unit2 = {
@@ -37,7 +37,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [unit1];
@@ -70,7 +70,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const unit2 = {
@@ -85,7 +85,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [unit1];
@@ -117,7 +117,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const unit2 = {
@@ -132,7 +132,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [unit1];
@@ -146,7 +146,10 @@ describe("Game Engine — Turn Management", () => {
     const result = advanceTurn(state);
     const unitAfterTurn = getUnitFromState(result, 0, 0);
     expect(unitAfterTurn).not.toBeNull();
-    expect(unitAfterTurn!.ap).toBe(Math.min(0 + 1, UNIT_TYPE_DEFS["warrior"].ap || 6));
+    // Unit 0 was previous turn; unit 1 (next) gets +1 AP
+    const unit1After = getUnitFromState(result, 1, 0);
+    expect(unit1After).not.toBeNull();
+    expect(unit1After!.ap).toBe(2);
   });
 
   it("should skip dead units", () => {
@@ -164,7 +167,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const unit2 = {
@@ -179,7 +182,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [unit1];
@@ -211,7 +214,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const unit2 = {
@@ -226,7 +229,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [unit1];
@@ -256,7 +259,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const unit2 = {
@@ -271,7 +274,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [unit1];

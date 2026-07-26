@@ -11,6 +11,7 @@ import {
   getReachableTiles,
   calculateDamage,
   getUnitMaxHp,
+  getPlayerIndex,
   isOwnUnit,
 } from "./helpers.js";
 import { executeAttack } from "./combat.js";
@@ -21,9 +22,19 @@ import { notifySubscribers } from "../state.js";
 export function aiTakeTurn(state: GameState): void {
   const turnUnit = getTurnUnit(state);
   if (!turnUnit) return;
+
+  // Only act for AI-controlled units (playerIndex 1 in AI mode)
+  const unitPlayer = getPlayerIndex(turnUnit);
+  if (unitPlayer !== 1) return;
+
   if (turnUnit.ap <= 0 || turnUnit.skillUsedThisTurn) {
     advanceTurn(state);
     notifySubscribers();
+    // Chain to next AI unit if applicable
+    const nextUnit = getTurnUnit(state);
+    if (nextUnit && (nextUnit.row >= 6)) {
+      setTimeout(() => aiTakeTurn(state), 200);
+    }
     return;
   }
 
@@ -103,9 +114,11 @@ export function aiTakeTurn(state: GameState): void {
   // Execute AI action
   if (bestAction === "attack" && bestTarget && bestSkill) {
     executeAttack(state, bestSkill, bestTarget);
+    advanceTurn(state);
     notifySubscribers();
   } else if (bestAction === "skill" && bestTarget && bestSkill) {
     executeAttack(state, bestSkill, bestTarget);
+    advanceTurn(state);
     notifySubscribers();
   } else {
     const reachable = getReachableTiles(state, turnUnit);
@@ -123,10 +136,14 @@ export function aiTakeTurn(state: GameState): void {
 
     if (bestMove) {
       executeMove(state, bestMove.row, bestMove.col);
-      notifySubscribers();
-    } else {
-      advanceTurn(state);
-      notifySubscribers();
     }
+    advanceTurn(state);
+    notifySubscribers();
+  }
+
+  // Chain to next AI unit if applicable
+  const nextUnit = getTurnUnit(state);
+  if (nextUnit && (nextUnit.row >= 6)) {
+    setTimeout(() => aiTakeTurn(state), 200);
   }
 }

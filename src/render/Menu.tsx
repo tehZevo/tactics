@@ -1,6 +1,6 @@
 /// <reference types="react" />
 import React from 'react';
-import { state, startTeamSelect } from "../state";
+import { state, startTeamSelect, startTestBattle } from "../state";
 
 export function Menu() {
   return (
@@ -13,6 +13,9 @@ export function Menu() {
         </button>
         <button className="btn" onClick={() => startTeamSelect(true)}>
           vs Computer
+        </button>
+        <button className="btn" onClick={() => startTestBattle()}>
+          Test Battle
         </button>
       </div>
     </div>

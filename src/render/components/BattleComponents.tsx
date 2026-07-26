@@ -7,39 +7,53 @@ import {
   placeUnit,
   getUnitMaxHp,
   startTargeting,
+  getPlayerIndex,
 } from "../../state";
 import { MAX_AP } from "../../data/index";
 import { UNIT_TYPE_DEFS, SKILL_DEFS, PASSIVE_DEFS } from "../../data/index";
-import type { SkillDef } from "../../data/skills";
+import type { PlacedUnit } from "../../state";
 
-export function TurnOrderStrip() {
-  const turnUnit = getTurnUnit(state);
-
+function HpBar({ current, max }: { current: number; max: number }) {
+  const pct = (current / max) * 100;
+  const cls = pct <= 25 ? " low" : pct <= 50 ? " mid" : "";
   return (
-    <div className="turn-order-strip">
-      {state.turnOrder.map((entry, i) => {
-        const team = entry.playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
-        const unit = team[entry.unitIndex];
-        if (!unit || unit.currentHp <= 0) return null;
+    <div className="up-hp-bar">
+      <div className={`up-hp-fill${cls}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
 
-        const td = UNIT_TYPE_DEFS[unit.typeId];
-        const isCurrent = turnUnit === unit;
-        const isDead = unit.currentHp <= 0;
+function UnitHeader({ unit }: { unit: PlacedUnit }) {
+  const td = UNIT_TYPE_DEFS[unit.typeId];
+  const playerIdx = getPlayerIndex(unit);
+  return (
+    <div className="up-header">
+      <div className="up-icon" style={{ background: td.color }}>{td.icon}</div>
+      <div>
+        <div className="up-name">{td.name}</div>
+        <div className="up-player">Player {playerIdx + 1}</div>
+      </div>
+    </div>
+  );
+}
 
+function SkillList({ unit }: { unit: PlacedUnit }) {
+  const td = UNIT_TYPE_DEFS[unit.typeId];
+  return (
+    <div className="up-section">
+      <div className="up-section-title">Skills</div>
+      {td.skills.map((sid) => {
+        const skill = SKILL_DEFS[sid];
+        const canUse = unit.ap >= skill.cost && !unit.skillUsedThisTurn;
         return (
           <div
-            key={i}
-            className={`turn-order-entry${isCurrent ? " current" : ""} p${entry.playerIndex + 1}`}
-            onClick={() => placeUnit(unit.row, unit.col)}
+            key={sid}
+            className={`up-skill${canUse ? "" : " disabled"}`}
+            onClick={() => canUse && startTargeting(unit, sid)}
           >
-            <div className="toe-icon" style={{ background: td.color }}>
-              {td.icon}
-            </div>
-            <div className="toe-info">
-              <div className="toe-name">{td.name}</div>
-              <div className="toe-player">P{entry.playerIndex + 1} &middot; {unit.currentHp}/{getUnitMaxHp(unit)} HP</div>
-            </div>
-            {isCurrent && <div className="toe-arrow" />}
+            <div className="up-skill-name">{skill.name}</div>
+            <div className="up-skill-cost">{skill.cost} AP &middot; Range {skill.range}</div>
+            <div className="up-skill-desc">{skill.description}</div>
           </div>
         );
       })}
@@ -47,101 +61,105 @@ export function TurnOrderStrip() {
   );
 }
 
-export function UnitPanel() {
-  const turnUnit = getTurnUnit(state);
-
-  if (!turnUnit) {
-    return (
-      <div className="unit-panel">
-        <p className="unit-panel-empty">No active unit</p>
-      </div>
-    );
-  }
-
-  const td = UNIT_TYPE_DEFS[turnUnit.typeId];
-  const stats = getEffectiveStats(turnUnit);
-  const maxHp = getUnitMaxHp(turnUnit);
-  const playerIdx = turnUnit.row < 5 ? 0 : 1;
-
-  const skillEls: React.ReactElement[] = [];
-  for (const sid of td.skills) {
-    const skill = SKILL_DEFS[sid] as SkillDef;
-    const canUse = turnUnit.ap >= skill.cost && !turnUnit.skillUsedThisTurn;
-    skillEls.push(
-      <div
-        key={sid}
-        className={`up-skill${canUse ? "" : " disabled"}`}
-        onClick={() => canUse && startTargeting(turnUnit, sid)}
-      >
-        <div className="up-skill-name">{skill.name}</div>
-        <div className="up-skill-cost">{skill.cost} AP &middot; Range {skill.range}</div>
-        <div className="up-skill-desc">{skill.description}</div>
-      </div>
-    );
-  }
-
-  let passiveEl: React.ReactElement | null = null;
-  if (turnUnit.passiveId && PASSIVE_DEFS[turnUnit.passiveId]) {
-    const pDef = PASSIVE_DEFS[turnUnit.passiveId];
-    passiveEl = (
+function PassiveDisplay({ unit }: { unit: PlacedUnit }) {
+  if (!unit.passiveId || !PASSIVE_DEFS[unit.passiveId]) return null;
+  const pDef = PASSIVE_DEFS[unit.passiveId];
+  return (
+    <div className="up-section">
       <div className="up-passive">
         <div className="up-passive-name">{pDef.name}</div>
         <div className="up-passive-desc">{pDef.description}</div>
-      </div>
-    );
-  }
-
-  const hpPct = (turnUnit.currentHp / maxHp) * 100;
-  const hpClass = hpPct <= 25 ? " low" : hpPct <= 50 ? " mid" : "";
-
-  return (
-    <div className={`unit-panel p${playerIdx + 1}`}>
-      <div className="up-header">
-        <div className="up-icon" style={{ background: td.color }}>{td.icon}</div>
-        <div>
-          <div className="up-name">{td.name}</div>
-          <div className="up-player">Player {playerIdx + 1}</div>
-        </div>
-      </div>
-
-      <div className="up-hp-row">
-        <span className="up-hp-label">HP</span>
-        <span className="up-hp-value">{turnUnit.currentHp}/{maxHp}</span>
-        <div className="up-hp-bar">
-          <div className={`up-hp-fill${hpClass}`} style={{ width: `${hpPct}%` }} />
-        </div>
-      </div>
-
-      <div className="up-stats">
-        <div className="up-stat"><span>ATK</span><span>+{stats.attack}</span></div>
-        <div className="up-stat"><span>DEF</span><span>+{stats.defense}</span></div>
-        <div className="up-stat"><span>SPD</span><span>{turnUnit.movement}</span></div>
-        <div className="up-stat"><span>INIT</span><span>{turnUnit.initiative}</span></div>
-        <div className="up-stat"><span>AP</span><span>{turnUnit.ap}/{MAX_AP}</span></div>
-      </div>
-
-      {passiveEl && <div className="up-section">{passiveEl}</div>}
-
-      <div className="up-section">
-        <div className="up-section-title">Skills</div>
-        {skillEls}
       </div>
     </div>
   );
 }
 
+function StatBlock({ unit }: { unit: PlacedUnit }) {
+  const stats = getEffectiveStats(unit);
+  return (
+    <div className="up-stats">
+      <div className="up-stat"><span>ATK</span><span>+{stats.attack}</span></div>
+      <div className="up-stat"><span>DEF</span><span>+{stats.defense}</span></div>
+      <div className="up-stat"><span>SPD</span><span>{unit.movement}</span></div>
+      <div className="up-stat"><span>INIT</span><span>{unit.initiative}</span></div>
+      <div className="up-stat"><span>AP</span><span>{unit.ap}/{MAX_AP}</span></div>
+    </div>
+  );
+}
+
+function TurnOrderEntry({ entry, isCurrent }: { entry: { playerIndex: 0 | 1; unitIndex: number }; isCurrent: boolean }) {
+  const team = entry.playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
+  const unit = team[entry.unitIndex];
+  if (!unit || unit.currentHp <= 0) return null;
+
+  const td = UNIT_TYPE_DEFS[unit.typeId];
+  return (
+    <div
+      className={`turn-order-entry${isCurrent ? " current" : ""} p${entry.playerIndex + 1}`}
+      onClick={() => placeUnit(unit.row, unit.col)}
+    >
+      <div className="toe-icon" style={{ background: td.color }}>
+        {td.icon}
+      </div>
+      <div className="toe-info">
+        <div className="toe-name">{td.name}</div>
+        <div className="toe-player">P{entry.playerIndex + 1} &middot; {unit.currentHp}/{getUnitMaxHp(unit)} HP</div>
+      </div>
+      {isCurrent && <div className="toe-arrow" />}
+    </div>
+  );
+}
+
+export function TurnOrderStrip() {
+  const turnUnit = getTurnUnit(state);
+  return (
+    <div className="turn-order-strip">
+      {state.turnOrder.map((entry, i) => (
+        <TurnOrderEntry
+          key={i}
+          entry={entry}
+          isCurrent={turnUnit === (entry.playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed)[entry.unitIndex]}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function UnitPanel() {
+  const turnUnit = getTurnUnit(state);
+  const playerIdx = turnUnit ? getPlayerIndex(turnUnit) : 0;
+
+  return (
+    <div className={`unit-panel${turnUnit ? ` p${playerIdx + 1}` : ""}`}>
+      {turnUnit ? (
+        <>
+          <UnitHeader unit={turnUnit} />
+          <div className="up-hp-row">
+            <span className="up-hp-label">HP</span>
+            <span className="up-hp-value">{turnUnit.currentHp}/{getUnitMaxHp(turnUnit)}</span>
+            <HpBar current={turnUnit.currentHp} max={getUnitMaxHp(turnUnit)} />
+          </div>
+          <StatBlock unit={turnUnit} />
+          <PassiveDisplay unit={turnUnit} />
+          <SkillList unit={turnUnit} />
+        </>
+      ) : (
+        <p className="unit-panel-empty">No active unit</p>
+      )}
+    </div>
+  );
+}
+
 export function BattleLog() {
-  const entries: React.ReactElement[] = [];
-  for (let i = state.log.length - 1; i >= 0 && entries.length < 15; i--) {
-    const entry = state.log[i];
-    entries.unshift(
-      <div key={i} className={`log-entry ${entry.type}`}>{entry.text}</div>
-    );
-  }
+  const recent = state.log.slice(-15).reverse();
   return (
     <div className="battle-log">
       <div className="bl-title">Battle Log</div>
-      <div className="bl-entries">{entries}</div>
+      <div className="bl-entries">
+        {recent.map((entry, i) => (
+          <div key={state.log.length - 1 - i} className={`log-entry ${entry.type}`}>{entry.text}</div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -22,7 +22,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const p2Unit = {
@@ -37,7 +37,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [p1Unit];
@@ -71,7 +71,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const p2Unit = {
@@ -86,7 +86,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [p1Unit];
@@ -120,6 +120,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 0 as 0 | 1,
     };
 
     const p2Unit = {
@@ -134,6 +135,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [p1Unit];
@@ -178,7 +180,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const p2Unit = {
@@ -193,7 +195,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [p1Unit];
@@ -228,7 +230,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 0,
+      playerIndex: 0 as 0 | 1,
     };
 
     const p2Unit = {
@@ -243,7 +245,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
-      playerIndex: 1,
+      playerIndex: 1 as 0 | 1,
     };
 
     state.p1Team.placed = [p1Unit];

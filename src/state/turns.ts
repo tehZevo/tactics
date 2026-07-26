@@ -28,14 +28,6 @@ export function advanceTurn(state: GameState): GameState {
   const prevIndex = state.currentTurnIndex;
   state.currentTurnIndex++;
 
-  const prevEntry = state.turnOrder[prevIndex];
-  const prevUnit = getUnitByRef(prevEntry, state.p1Team.placed, state.p2Team.placed);
-  if (prevUnit && prevUnit.currentHp > 0) {
-    let apGain = 1;
-    if (prevUnit.passiveId === "desperate") apGain += 1;
-    prevUnit.ap = Math.min(prevUnit.ap + apGain, MAX_AP);
-  }
-
   if (state.currentTurnIndex >= state.turnOrder.length) {
     for (const entry of state.turnOrder) {
       const unit = getUnitByRef(entry, state.p1Team.placed, state.p2Team.placed);
@@ -61,6 +53,9 @@ export function advanceTurn(state: GameState): GameState {
     const unit = getUnitByRef(next, state.p1Team.placed, state.p2Team.placed);
     if (unit && unit.currentHp > 0) {
       unit.invulnerable = false;
+      let apGain = 1;
+      if (unit.passiveId === "desperate") apGain += 1;
+      unit.ap = Math.min(unit.ap + apGain, MAX_AP);
       addLog(state, `${getUnitDisplayName(unit)}'s turn.`, "info");
       return state;
     }

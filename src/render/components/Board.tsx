@@ -7,7 +7,13 @@ import {
   getTurnUnit,
   isOwnUnit,
   placeUnit,
-  currentMap,
+  executeMove,
+  notifySubscribers,
+  startTargeting,
+  endTurn,
+  aiTakeTurn,
+  getIsVsAI,
+  getPlayerIndex,
 } from "../../state";
 import {
   UNIT_TYPE_DEFS,
@@ -16,7 +22,8 @@ import {
   MAX_AP,
   SKILL_DEFS,
 } from "../../data/index";
-import { getUnitMaxHp } from "../../state";
+import { getUnitMaxHp, getEffectiveStats, getTargetsInRange, findUnitRef } from "../../state";
+import type { PlacedUnit } from "../../state";
 
 function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>) {
   const [width, setWidth] = useState(0);
@@ -39,12 +46,7 @@ function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>) {
   return width;
 }
 
-export function Board() {
-  const map = currentMap();
-  const tiles: React.ReactElement[] = [];
-  const containerRef = useRef<HTMLDivElement>(null);
-  const containerWidth = useContainerWidth(containerRef);
-
+function useBoardMetrics(containerWidth: number) {
   const maxTileSize = Math.floor((containerWidth - 8) / BOARD_COLS);
   const tileSize = Math.min(Math.max(maxTileSize, 28), 52);
   const gap = Math.min(Math.max(tileSize * 0.02, 1), 2);
@@ -54,6 +56,121 @@ export function Board() {
   const tuFontSize = Math.max(Math.floor(tileSize * 0.5), 9);
   const tuHpBarHeight = Math.max(Math.floor(unitSize * 0.08), 2);
   const tuHpBarGap = Math.max(Math.floor(unitSize * 0.04), 1);
+  return { tileSize, gap, unitSize, hpBarWidth, apDotSize, tuFontSize, tuHpBarHeight, tuHpBarGap };
+}
+
+function TileUnit({
+  unit,
+  metrics,
+}: {
+  unit: PlacedUnit;
+  metrics: { unitSize: number; hpBarWidth: number; apDotSize: number; tuFontSize: number; tuHpBarHeight: number; tuHpBarGap: number };
+}) {
+  const td = UNIT_TYPE_DEFS[unit.typeId];
+  const classes: string[] = [
+    "tile-unit",
+    `p${getPlayerIndex(unit) + 1}`,
+  ];
+  if (unit.currentHp <= 0) classes.push("dead-unit");
+  if (unit.invulnerable) classes.push("invulnerable");
+
+  const turnUnit = getTurnUnit(state);
+  if (turnUnit === unit) classes.push("active-unit");
+
+  const maxHp = getUnitMaxHp(unit);
+  const hpPct = (unit.currentHp / maxHp) * 100;
+
+  const hpFillClasses: string[] = ["tu-hp-fill"];
+  if (hpPct <= 25) hpFillClasses.push("low");
+  else if (hpPct <= 50) hpFillClasses.push("mid");
+
+  const { unitSize, hpBarWidth, apDotSize, tuFontSize, tuHpBarHeight, tuHpBarGap } = metrics;
+
+  return (
+    <div
+      className={classes.join(" ")}
+      style={{
+        background: td.color,
+        width: `${unitSize}px`,
+        height: `${unitSize}px`,
+        fontSize: `${tuFontSize}px`,
+      }}
+    >
+      <div className="tu-name">{td.icon}</div>
+      {unit.invulnerable && <div className="tu-invulnerable">?</div>}
+      <div
+        className="tu-hp-bar"
+        style={{ width: `${hpBarWidth}px`, height: `${tuHpBarHeight}px` }}
+      >
+        <div
+          className={hpFillClasses.join(" ")}
+          style={{ width: `${hpPct}%` }}
+        />
+      </div>
+      <div className="tu-ap-dots" style={{ gap: `${Math.max(tuHpBarGap, 1)}px` }}>
+        {Array.from({ length: MAX_AP }, (_, d) => (
+          <div
+            key={d}
+            className={"tu-ap-dot" + (d < unit.ap ? " filled" : "")}
+            style={{ width: `${apDotSize}px`, height: `${apDotSize}px` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function Board() {
+  const map = state.map;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerWidth = useContainerWidth(containerRef);
+  const metrics = useBoardMetrics(containerWidth);
+  const tiles: React.ReactElement[] = [];
+
+  const handleBattleTileClick = (r: number, c: number) => {
+    const unit = state.board[r][c];
+    const turnUnit = getTurnUnit(state);
+
+    // If in target selection mode, delegate to placeUnit
+    if (state.actionMode === "selectTarget") {
+      placeUnit(r, c);
+      return;
+    }
+
+    // If clicking on a highlighted reachable tile while a unit is selected, move there
+    if (state.selectedUnit && turnUnit) {
+      const selTeam = state.selectedUnit.playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
+      const selUnit = selTeam[state.selectedUnit.unitIndex];
+      if (selUnit?.currentHp > 0 && isOwnUnit(turnUnit, selUnit)) {
+        const reachable = getReachableTiles(state, selUnit);
+        if (reachable.has(`${r},${c}`) && !state.board[r][c]) {
+          executeMove(state, r, c);
+          notifySubscribers();
+          return;
+        }
+      }
+    }
+
+    // If clicking on the current turn unit, select it
+    if (unit && turnUnit && unit.currentHp > 0 && isOwnUnit(turnUnit, unit)) {
+      state.selectedUnit = findUnitRef(unit, state.p1Team.placed, state.p2Team.placed);
+      notifySubscribers();
+      return;
+    }
+
+    // If clicking on an enemy unit while it's your turn, show attack targets
+    if (unit && turnUnit && unit.currentHp > 0 && !isOwnUnit(turnUnit, unit)) {
+      state.selectedUnit = findUnitRef(unit, state.p1Team.placed, state.p2Team.placed);
+      notifySubscribers();
+      return;
+    }
+
+    // Clicked empty tile or dead unit - deselect
+    state.selectedUnit = null;
+    state.actionMode = "idle";
+    state.selectedAction = null;
+    notifySubscribers();
+  };
 
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
@@ -61,144 +178,69 @@ export function Board() {
       const tileClasses: string[] = ["tile"];
       if (!walkable) tileClasses.push("unwalkable");
 
-      // Deployment zone highlighting
       if (state.screen === "teamSelect") {
-        if (state.deployTurn === 0 && c <= 2) {
-          tileClasses.push("deployment-zone");
-        } else if (state.deployTurn === 1 && c >= 7) {
-          tileClasses.push("deployment-zone");
-        }
-        // Highlight selected cell
-        if (state.selectedDeployCell && state.selectedDeployCell.row === r && state.selectedDeployCell.col === c) {
+        if (state.deployTurn === 0 && c <= 2) tileClasses.push("deployment-zone");
+        else if (state.deployTurn === 1 && c >= 9) tileClasses.push("deployment-zone");
+        if (state.selectedDeployCell?.row === r && state.selectedDeployCell?.col === c) {
           tileClasses.push("selected");
         }
       } else {
         if (c <= 2) tileClasses.push("deployment-zone");
-        if (c >= 7) tileClasses.push("deployment-zone");
+        if (c >= 9) tileClasses.push("deployment-zone");
       }
 
-      // Battle phase highlights
-      if (state.screen === "battle" && state.selectedUnit) {
-        const turnUnit = getTurnUnit(state);
-        if (turnUnit) {
-          const selectedTeam = state.selectedUnit!.playerIndex === 0
-            ? state.p1Team.placed
-            : state.p2Team.placed;
-          const selUnit = selectedTeam[state.selectedUnit!.unitIndex];
-          if (selUnit && selUnit.currentHp > 0 && isOwnUnit(turnUnit, selUnit)) {
-            const reachable = getReachableTiles(state, selUnit);
-            if (reachable.has(`${r},${c}`) && state.board[r][c] === null) {
-              tileClasses.push("move-highlight");
-            }
-          }
-        }
-      }
-
-      if (state.screen === "battle" && state.actionMode === "selectTarget" && state.selectedAction) {
-        const action = state.selectedAction;
-        if (action.type === "attack" || action.type === "skill") {
-          const target = state.board[r][c];
-          if (target === action.target) {
-            tileClasses.push(action.type === "attack" ? "attack-highlight" : "skill-highlight");
-          }
-        }
-        if (action.type === "leap") {
+      if (state.screen === "battle") {
+        if (state.selectedUnit) {
           const turnUnit = getTurnUnit(state);
           if (turnUnit) {
-            const reachable = getReachableTiles(state, turnUnit);
-            if (reachable.has(`${r},${c}`) && state.board[r][c] === null) {
-              tileClasses.push("leap-highlight");
+            const selTeam = state.selectedUnit.playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
+            const selUnit = selTeam[state.selectedUnit.unitIndex];
+            if (selUnit?.currentHp > 0 && isOwnUnit(turnUnit, selUnit)) {
+              const reachable = getReachableTiles(state, selUnit);
+              if (reachable.has(`${r},${c}`) && !state.board[r][c]) tileClasses.push("move-highlight");
             }
           }
         }
-        if (action.type === "aoeAttack") {
-          const skill = SKILL_DEFS[action.skillId];
-          if (skill && skill.aoe) {
-            const radius = skill.aoe;
-            const center = action.center;
-            if (Math.abs(r - center.row) + Math.abs(c - center.col) <= radius) {
+        if (state.actionMode === "selectTarget" && state.selectedAction) {
+          const a = state.selectedAction;
+          if ((a.type === "attack" || a.type === "skill") && state.board[r][c] === a.target) {
+            tileClasses.push(a.type === "attack" ? "attack-highlight" : "skill-highlight");
+          }
+          if (a.type === "leap") {
+            const tu = getTurnUnit(state);
+            if (tu) {
+              const reachable = getReachableTiles(state, tu);
+              if (reachable.has(`${r},${c}`) && !state.board[r][c]) tileClasses.push("leap-highlight");
+            }
+          }
+          if (a.type === "aoeAttack") {
+            const skill = SKILL_DEFS[a.skillId];
+            if (skill?.aoe && Math.abs(r - a.center.row) + Math.abs(c - a.center.col) <= skill.aoe) {
               tileClasses.push("aoe-highlight");
             }
           }
         }
       }
 
-      // During team selection, hide opponent's units for PvP
       let unit = state.board[r][c];
       if (state.screen === "teamSelect" && unit && state.deployTurn === 1) {
-        const unitPlayer = unit.row < 5 ? 0 : 1;
-        if (unitPlayer !== state.deployTurn) {
-          unit = null; // Hide P1's units when P2 is placing
-        }
-      }
-
-      let unitDiv: React.ReactElement | null = null;
-
-      if (unit) {
-        const td = UNIT_TYPE_DEFS[unit.typeId];
-        const unitClasses: string[] = [
-          "tile-unit",
-          `p${unit.row < 5 ? 1 : 2}`,
-        ];
-        if (unit.currentHp <= 0) unitClasses.push("dead-unit");
-        if (unit.invulnerable) unitClasses.push("invulnerable");
-
-        const turnUnit = getTurnUnit(state);
-        if (turnUnit === unit) unitClasses.push("active-unit");
-
-        const maxHp = getUnitMaxHp(unit);
-        const hpPct = (unit.currentHp / maxHp) * 100;
-
-        const hpBarClasses: string[] = ["tu-hp-bar"];
-        const hpFillClasses: string[] = ["tu-hp-fill"];
-        if (hpPct <= 25) hpFillClasses.push("low");
-        else if (hpPct <= 50) hpFillClasses.push("mid");
-
-        const apDots: React.ReactElement[] = [];
-        for (let d = 0; d < MAX_AP; d++) {
-          apDots.push(
-            <div
-              key={d}
-              className={"tu-ap-dot" + (d < unit.ap ? " filled" : "")}
-              style={{ width: `${apDotSize}px`, height: `${apDotSize}px` }}
-            />
-          );
-        }
-
-        unitDiv = (
-          <div
-            className={unitClasses.join(" ")}
-            style={{
-              background: td.color,
-              width: `${unitSize}px`,
-              height: `${unitSize}px`,
-              fontSize: `${tuFontSize}px`,
-            }}
-          >
-            <div className="tu-name">{td.icon}</div>
-            {unit.invulnerable && <div className="tu-invulnerable">?</div>}
-            <div
-              className={hpBarClasses.join(" ")}
-              style={{ width: `${hpBarWidth}px`, height: `${tuHpBarHeight}px` }}
-            >
-              <div
-                className={hpFillClasses.join(" ")}
-                style={{ width: `${hpPct}%` }}
-              />
-            </div>
-            <div className="tu-ap-dots" style={{ gap: `${Math.max(tuHpBarGap, 1)}px` }}>{apDots}</div>
-          </div>
-        );
+        if (getPlayerIndex(unit) !== state.deployTurn) unit = null;
       }
 
       tiles.push(
         <div
           key={`${r}-${c}`}
           className={tileClasses.join(" ")}
-          style={{ width: `${tileSize}px`, height: `${tileSize}px` }}
-          onClick={() => placeUnit(r, c)}
+          style={{ width: `${metrics.tileSize}px`, height: `${metrics.tileSize}px` }}
+          onClick={() => {
+        if (state.screen === "battle") {
+          handleBattleTileClick(r, c);
+        } else {
+          placeUnit(r, c);
+        }
+      }}
         >
-          {unitDiv}
+          {unit && <TileUnit unit={unit} metrics={metrics} />}
         </div>
       );
     }
@@ -209,9 +251,9 @@ export function Board() {
       <div
         className="board"
         style={{
-          gridTemplateColumns: `repeat(${BOARD_COLS}, ${tileSize}px)`,
-          gridTemplateRows: `repeat(${BOARD_ROWS}, ${tileSize}px)`,
-          gap: `${gap}px`,
+          gridTemplateColumns: `repeat(${BOARD_COLS}, ${metrics.tileSize}px)`,
+          gridTemplateRows: `repeat(${BOARD_ROWS}, ${metrics.tileSize}px)`,
+          gap: `${metrics.gap}px`,
         }}
       >
         {tiles}

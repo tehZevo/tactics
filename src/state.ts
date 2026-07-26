@@ -7,7 +7,7 @@ import {
   UNIT_TYPE_DEFS,
   PASSIVE_DEFS,
 } from "./data/index";
-import type { GameState, PlacedUnit } from "./state/types";
+import type { GameState, PlacedUnit, Team } from "./state/types";
 import {
   getUnitAt,
   getReachableTiles,
@@ -20,30 +20,18 @@ import {
   getUnitByRef,
   isOwnUnit,
   getUnitDisplayName,
+  getPlayerIndex,
 } from "./state/helpers.js";
 import { SKILL_DEFS } from "./data/skills.js";
 import { executeMove, executeLeap } from "./state/moves.js";
 import { executeAttack, executeAoeAttack } from "./state/combat.js";
 import { getTurnUnit, advanceTurn } from "./state/turns.js";
-import { getRandomMap } from "./data/maps.js";
-import { getRandomTeam } from "./data/teams.js";
-
-// ---- Current map ----
-
-let currentMapValue: ReturnType<typeof getRandomMap> | null = null;
-
-export function currentMap() {
-  if (!currentMapValue) currentMapValue = getRandomMap();
-  return currentMapValue;
-}
-
-export function resetMap() {
-  currentMapValue = null;
-}
+import { getRandomMap, TEST_MAP } from "./data/maps.js";
+import { getRandomTeam, PRESET_TEAMS, getTeamPlacements } from "./data/teams.js";
 
 // ---- Factory functions ----
 
-function createPlacedUnit(typeId: string, passiveId: string, row: number, col: number, playerIndex: 0 | 1): PlacedUnit {
+export function createPlacedUnit(typeId: string, passiveId: string, row: number, col: number, playerIndex: 0 | 1): PlacedUnit {
   const typeDef = UNIT_TYPE_DEFS[typeId];
   let stats = {
     hp: typeDef.hp,
@@ -112,6 +100,28 @@ export function startTeamSelect(viaAI: boolean): void {
   notifySubscribers();
 }
 
+export function startTestBattle(): void {
+  isVsAI = false;
+  state = initState();
+  state.map = TEST_MAP;
+
+  const balanced = PRESET_TEAMS[0]; // Balanced team
+  const buildTeam = (side: "p1" | "p2") => {
+    const placements = getTeamPlacements(side);
+    const team: Team = { placed: [] };
+    balanced.units.forEach((unit, index) => {
+      const pos = placements[index];
+      const placed = createPlacedUnit(unit.typeId, unit.passiveId, pos.row, pos.col, side === "p1" ? 0 : 1);
+      team.placed.push(placed);
+    });
+    return team;
+  };
+
+  state.p1Team = buildTeam("p1");
+  state.p2Team = buildTeam("p2");
+  startBattle();
+}
+
 export function getIsVsAI(): boolean {
   return isVsAI;
 }
@@ -132,7 +142,7 @@ export function selectDeployCell(row: number, col: number): void {
 
   // If clicking on an existing placed unit, enter edit mode for it
   if (existingUnit) {
-    const unitPlayer = existingUnit.row < 5 ? 0 : 1;
+    const unitPlayer = getPlayerIndex(existingUnit);
     if (unitPlayer === state.deployTurn) {
       const index = team.placed.indexOf(existingUnit);
       if (index >= 0) {
@@ -149,7 +159,7 @@ export function selectDeployCell(row: number, col: number): void {
 
   // Validate deployment zone
   if (state.deployTurn === 0 && col > 2) return;
-  if (state.deployTurn === 1 && col < 7) return;
+  if (state.deployTurn === 1 && col < 9) return;
 
   // If a unit type is selected, place it directly
   if (state.selectedUnitType && team.placed.length < 6) {
@@ -487,5 +497,5 @@ export { executeAttack, executeAoeAttack } from "./state/combat";
 export { executeMove, executeLeap } from "./state/moves";
 export { getTurnUnit, advanceTurn } from "./state/turns";
 export { aiTakeTurn } from "./state/ai";
-export { isOwnUnit, getUnitDisplayName, getReachableTiles, getEffectiveStats, getUnitMaxHp, getUnitAt, getTargetsInRange, calculateDamage, addLog, findUnitRef, getUnitByRef } from "./state/helpers";
+export { isOwnUnit, getPlayerIndex, getUnitDisplayName, getReachableTiles, getEffectiveStats, getEffectiveStatsFor, getUnitMaxHp, getUnitMaxHpFor, getUnitAt, getTargetsInRange, calculateDamage, addLog, findUnitRef, getUnitByRef } from "./state/helpers";
 export type { GameState, PlacedUnit } from "./state/types";
