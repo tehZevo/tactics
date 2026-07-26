@@ -1,7 +1,7 @@
 /// <reference types="react" />
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { state, placeUnit, selectUnitType, selectPassiveId, confirmTeam, getIsVsAI, subscribe } from "../state";
+import { state, placeUnit, selectUnitType, selectPassiveId, confirmTeam, getIsVsAI, subscribe, addUnitToBoard, setPassive } from "../state";
 import {
   UNIT_TYPE_DEFS,
   UNIT_TYPE_IDS,
@@ -9,6 +9,68 @@ import {
   PASSIVE_IDS,
 } from "../data/index";
 import { Board } from "./components/Board";
+
+function DeploymentRoster({
+  selectedUnitType,
+  placedTypeIds,
+  onSelect,
+}: {
+  selectedUnitType: string | null;
+  placedTypeIds: string[];
+  onSelect: (typeId: string) => void;
+}) {
+  return (
+    <div className="deployment-roster">
+      {UNIT_TYPE_IDS.map((typeId) => {
+        const def = UNIT_TYPE_DEFS[typeId];
+        const isSelected = selectedUnitType === typeId;
+        const isPlaced = placedTypeIds.includes(typeId);
+        return (
+          <div
+            key={typeId}
+            className={`deployment-roster-item${isSelected ? " active" : ""}${isPlaced ? " disabled" : ""}`}
+            onClick={() => !isPlaced && onSelect(typeId)}
+          >
+            <div className="deployment-roster-icon" style={{ background: def.color }}>
+              {def.icon}
+            </div>
+            <div className="deployment-roster-name">{def.name}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PassivePicker({
+  selectedUnitType,
+  selectedPassiveId,
+  onSelect,
+}: {
+  selectedUnitType: string;
+  selectedPassiveId: string | null;
+  onSelect: (passiveId: string) => void;
+}) {
+  const recommended = PASSIVE_IDS.filter(p =>
+    PASSIVE_DEFS[p].recommended && PASSIVE_DEFS[p].recommended.includes(selectedUnitType)
+  );
+  return (
+    <div className="passive-slots">
+      {PASSIVE_IDS.map((pid) => {
+        const passiveDef = PASSIVE_DEFS[pid];
+        const isRecommended = recommended.includes(pid);
+        const isSelected = selectedPassiveId === pid;
+        return (
+          <div key={pid} className={`passive-grid-btn${isSelected ? " selected" : ""}${isRecommended ? " recommended" : ""}`}>
+            <button onClick={() => onSelect(pid)}>
+              {passiveDef.name}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function Deployment() {
   const [, setVersion] = useState(0);
@@ -24,7 +86,6 @@ export function Deployment() {
   const isVsAI = getIsVsAI();
 
   const handlePlaceUnit = (row: number, col: number) => {
-    if (state.screen !== "deploy") return;
     
     // If clicking on a placed unit, remove it
     const unit = state.board[row][col];
@@ -103,46 +164,20 @@ export function Deployment() {
       <div className="deployment-board-area">
         <div className="deployment-info">
           <h4>Choose Unit</h4>
-          <div className="deployment-roster">
-            {UNIT_TYPE_IDS.map((typeId) => {
-              const def = UNIT_TYPE_DEFS[typeId];
-              const isSelected = state.selectedUnitType === typeId;
-              const isPlaced = currentTeam.placed.some(p => p.typeId === typeId);
-              return (
-                <div
-                  key={typeId}
-                  className={`deployment-roster-item${isSelected ? " active" : ""}${isPlaced ? " disabled" : ""}`}
-                  onClick={() => !isPlaced && handleSelectUnit(typeId)}
-                >
-                  <div className="deployment-roster-icon" style={{ background: def.color }}>
-                    {def.icon}
-                  </div>
-                  <div className="deployment-roster-name">{def.name}</div>
-                </div>
-              );
-            })}
-          </div>
-          
+          <DeploymentRoster
+            selectedUnitType={state.selectedUnitType}
+            placedTypeIds={currentTeam.placed.map(p => p.typeId)}
+            onSelect={handleSelectUnit}
+          />
+
           {state.selectedUnitType && (
             <>
               <h4>Choose Passive</h4>
-              <div className="passive-slots">
-                {PASSIVE_IDS.map((pid) => {
-                  const passiveDef = PASSIVE_DEFS[pid];
-                  const recommended = PASSIVE_IDS.filter(p => 
-                    PASSIVE_DEFS[p].recommended && PASSIVE_DEFS[p].recommended.includes(state.selectedUnitType!)
-                  );
-                  const isRecommended = recommended.includes(pid);
-                  const isSelected = state.selectedPassiveId === pid;
-                  return (
-                    <div key={pid} className={`passive-grid-btn${isSelected ? " selected" : ""}${isRecommended ? " recommended" : ""}`}>
-                      <button onClick={() => handleSelectPassive(pid)}>
-                        {passiveDef.name}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              <PassivePicker
+                selectedUnitType={state.selectedUnitType}
+                selectedPassiveId={state.selectedPassiveId}
+                onSelect={handleSelectPassive}
+              />
             </>
           )}
 

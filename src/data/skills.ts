@@ -63,7 +63,7 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     damage: 3,
   },
 
-  // Mage
+  // Wizard
   fireball: {
     name: "Fireball",
     cost: 3,

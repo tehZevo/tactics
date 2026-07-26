@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { state, subscribe, getIsVsAI } from './state';
 import { Menu } from './render/Menu';
 import { TeamSelect } from './render/TeamSelect';
-import { Deployment } from './render/Deployment';
 import { Battle } from './render/Battle';
 import { Victory } from './render/Victory';
 
@@ -28,8 +27,6 @@ export function App() {
       return <Menu />;
     case "teamSelect":
       return <TeamSelect />;
-    case "deploy":
-      return <Deployment />;
     case "battle":
       return <Battle />;
     case "victory":

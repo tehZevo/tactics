@@ -1,5 +1,5 @@
 // ============================================================
-//  STATE / COMBAT — executeAttack, executeMove, executeFullScreenAttack
+//  STATE / COMBAT — attack, heal, buff, and skill actions
 // ============================================================
 import {
   BOARD_COLS,
@@ -11,65 +11,14 @@ import {
 import type { SkillDef } from "../data/skills.js";
 import { GameState, PlacedUnit } from "./types.js";
 import {
-  getUnitAt,
-  getReachableTiles,
+  calculateDamage,
   getEffectiveStats,
   getUnitMaxHp,
   getUnitDisplayName,
-  addLog,
   isOwnUnit,
-  calculateDamage,
-  findUnitRef,
-  getUnitByRef,
+  addLog,
 } from "./helpers.js";
-
-export function executeMove(state: GameState, row: number, col: number): void {
-  const turnUnit = getTurnUnit(state);
-  if (!turnUnit) return;
-
-  const reachable = getReachableTiles(state, turnUnit);
-  if (!reachable.has(`${row},${col}`)) return;
-
-  const oldRow = turnUnit.row;
-  const oldCol = turnUnit.col;
-
-  // Move is free (no AP cost)
-  state.board[oldRow][oldCol] = null;
-  turnUnit.row = row;
-  turnUnit.col = col;
-  state.board[row][col] = turnUnit;
-
-  addLog(state, `${getUnitDisplayName(turnUnit)} moves to (${row},${col}).`);
-  state.actionMode = "idle";
-  state.selectedAction = null;
-}
-
-export function executeLeap(state: GameState, targetRow: number, targetCol: number): void {
-  const turnUnit = getTurnUnit(state);
-  if (!turnUnit) return;
-
-  const leapBonus = turnUnit.leapBonus || 0;
-  if (leapBonus <= 0) return;
-
-  // Check if target is reachable with normal + leap movement
-  const reachable = getReachableTiles(state, turnUnit);
-  if (!reachable.has(`${targetRow},${targetCol}`)) return;
-
-  // Verify target is empty
-  if (state.board[targetRow][targetCol] !== null) return;
-
-  const oldRow = turnUnit.row;
-  const oldCol = turnUnit.col;
-
-  state.board[oldRow][oldCol] = null;
-  turnUnit.row = targetRow;
-  turnUnit.col = targetCol;
-  state.board[targetRow][targetCol] = turnUnit;
-
-  addLog(state, `${getUnitDisplayName(turnUnit)} leaps to (${targetRow},${targetCol})!`);
-  state.actionMode = "idle";
-  state.selectedAction = null;
-}
+import { getTurnUnit } from "./turns.js";
 
 export function executeAttack(state: GameState, skillId: string, target: PlacedUnit): void {
   const turnUnit = getTurnUnit(state);
@@ -77,21 +26,15 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
 
   const skill = SKILL_DEFS[skillId];
   if (turnUnit.ap < skill.cost) return;
-
-  // Check if skill already used this turn (1 skill limit)
   if (turnUnit.skillUsedThisTurn) return;
 
-  // Check range
   const dist = Math.abs(turnUnit.row - target.row) + Math.abs(turnUnit.col - target.col);
   let effectiveRange = skill.range;
   if (turnUnit.passiveId === "tracker") effectiveRange += 1;
-  
-  // Self-target check
+
   if (skill.selfTarget && target !== turnUnit) return;
-  
   if (dist > effectiveRange) return;
 
-  // Check invulnerability
   if (target.invulnerable) {
     addLog(state, `${getUnitDisplayName(target)} phases through the attack, unharmed!`, "info");
     state.actionMode = "idle";
@@ -102,6 +45,7 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
   // AoE attack: hit all enemies within radius of target
   if (skill.aoe && skill.type === "attack") {
     turnUnit.skillUsedThisTurn = true;
+    turnUnit.ap -= skill.cost;
     executeAoeAttack(state, turnUnit, skill, skillId, target);
     state.actionMode = "idle";
     state.selectedAction = null;
@@ -113,10 +57,8 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
   // Attack check: must be an enemy
   if (skill.type === "attack" && isOwnUnit(turnUnit, target)) return;
 
-  // Mark skill as used this turn
   turnUnit.skillUsedThisTurn = true;
 
-  // Apply damage / heal
   if (skill.type === "attack") {
     const damage = calculateDamage(turnUnit, target, skillId);
     target.currentHp -= damage;
@@ -124,7 +66,6 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
 
     addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name} on ${getUnitDisplayName(target)} for ${damage} damage!`, "damage");
 
-    // Self damage
     if (skill.selfDamage) {
       turnUnit.currentHp -= skill.selfDamage;
       if (turnUnit.currentHp <= 0) {
@@ -135,17 +76,14 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
       }
     }
 
-    // Check for kill
     if (target.currentHp <= 0) {
       target.currentHp = 0;
       addLog(state, `${getUnitDisplayName(target)} is defeated!`, "damage");
-      // Bloodthirsty heal
       if (turnUnit.passiveId === "bloodthirsty") {
         const maxHp = getUnitMaxHp(turnUnit);
         turnUnit.currentHp = Math.min(turnUnit.currentHp + 1, maxHp);
         addLog(state, `${getUnitDisplayName(turnUnit)} heals 1 HP from Bloodthirsty!`, "heal");
       }
-      // Check for win
       checkVictory(state);
     }
 
@@ -156,6 +94,7 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
     target.currentHp += actualHeal;
     turnUnit.ap -= skill.cost;
     addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name} on ${getUnitDisplayName(target)}, restoring ${actualHeal} HP!`, "heal");
+
   } else if (skill.type === "buff") {
     turnUnit.ap -= skill.cost;
     if (skill.grantsInvulnerability) {
@@ -163,54 +102,53 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
       addLog(state, `${getUnitDisplayName(turnUnit)} phases out of reality, becoming invulnerable until their next turn!`, "info");
     }
     addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}!`, "info");
+
   } else if (skill.type === "movement") {
-    if (skill.leapBonus) {
-      // Leap: grant temporary movement bonus, then let player choose destination
-      turnUnit.ap -= skill.cost;
-      turnUnit.skillUsedThisTurn = true;
-      turnUnit.leapBonus = skill.leapBonus;
-      addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}, gaining +${skill.leapBonus} movement!`, "info");
-      return;
-    }
+    turnUnit.ap -= skill.cost;
     if (skill.swapTarget) {
       // Swap: swap positions with target unit
-      turnUnit.ap -= skill.cost;
-      turnUnit.skillUsedThisTurn = true;
       const targetRow = target.row;
       const targetCol = target.col;
-      
+
       state.board[turnUnit.row][turnUnit.col] = null;
       state.board[target.row][target.col] = null;
-      
+
       const tempRow = turnUnit.row;
       const tempCol = turnUnit.col;
       turnUnit.row = targetRow;
       turnUnit.col = targetCol;
       target.row = tempRow;
       target.col = tempCol;
-      
+
       state.board[turnUnit.row][turnUnit.col] = turnUnit;
       state.board[target.row][target.col] = target;
-      
+
       const turnTeam = turnUnit.row < 5 ? 0 : 1;
       const targetTeam = target.row < 5 ? 0 : 1;
       const isAlly = turnTeam === targetTeam;
       addLog(state, `${getUnitDisplayName(turnUnit)} swaps with ${getUnitDisplayName(target)}${isAlly ? " (ally)" : " (enemy)"}`);
-      return;
-    }
-    // Shadow Step: teleport to any empty tile within range 3
-    const range = 3;
-    // Find nearest valid target (the tile the player clicked should be within range and empty)
-    const dist = Math.abs(turnUnit.row - target.row) + Math.abs(turnUnit.col - target.col);
-    if (dist > range) return;
-    if (state.board[target.row][target.col] !== null) return;
 
+    } else {
+      // Shadow Step: teleport to any empty tile within range 3
+      const range = 3;
+      const dist = Math.abs(turnUnit.row - target.row) + Math.abs(turnUnit.col - target.col);
+      if (dist > range) return;
+      if (state.board[target.row][target.col] !== null) return;
+
+      state.board[turnUnit.row][turnUnit.col] = null;
+      turnUnit.row = target.row;
+      turnUnit.col = target.col;
+      state.board[target.row][target.col] = turnUnit;
+      addLog(state, `${getUnitDisplayName(turnUnit)} teleports to (${target.row},${target.col})!`, "info");
+    }
+
+  } else if (skill.type === "apDrain") {
     turnUnit.ap -= skill.cost;
-    state.board[turnUnit.row][turnUnit.col] = null;
-    turnUnit.row = target.row;
-    turnUnit.col = target.col;
-    state.board[target.row][target.col] = turnUnit;
-    addLog(state, `${getUnitDisplayName(turnUnit)} teleports to (${target.row},${target.col})!`, "info");
+    const drainAmount = skill.apDrain || 1;
+    const actualDrain = Math.min(drainAmount, target.ap);
+    target.ap -= actualDrain;
+    turnUnit.ap += actualDrain;
+    addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name} on ${getUnitDisplayName(target)}, stealing ${actualDrain} AP!`, "info");
   }
 
   state.actionMode = "idle";
@@ -251,75 +189,13 @@ export function executeAoeAttack(state: GameState, attacker: PlacedUnit, skill: 
   addLog(state, `${getUnitDisplayName(attacker)} uses ${skill.name}! ${hitCount} enemies hit for ${totalDamage} total damage.`, "damage");
 }
 
-export function getTurnUnit(state: GameState): PlacedUnit | null {
-  if (state.currentTurnIndex >= state.turnOrder.length) return null;
-  const { playerIndex, unitIndex } = state.turnOrder[state.currentTurnIndex];
-  const team = playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
-  if (unitIndex >= team.length) return null;
-  const unit = team[unitIndex];
-  // Skip dead units
-  if (unit.currentHp <= 0) return null;
-  return unit;
-}
-
-export function advanceTurn(state: GameState): void {
-  const prevIndex = state.currentTurnIndex;
-  state.currentTurnIndex++;
-
-  // Restore AP for the unit that just finished their turn
-  const prevEntry = state.turnOrder[prevIndex];
-  const prevUnit = getUnitByRef(prevEntry.playerIndex, prevEntry.unitIndex, state.p1Team.placed, state.p2Team.placed);
-  if (prevUnit && prevUnit.currentHp > 0) {
-    let apGain = 1;
-    if (prevUnit.passiveId === "desperate") apGain += 1;
-    prevUnit.ap = Math.min(prevUnit.ap + apGain, 6);
-  }
-
-  // Check if we've gone through all units
-  if (state.currentTurnIndex >= state.turnOrder.length) {
-    // New round - reset skillUsedThisTurn and apply poison
-    for (const entry of state.turnOrder) {
-      const unit = getUnitByRef(entry.playerIndex, entry.unitIndex, state.p1Team.placed, state.p2Team.placed);
-      if (!unit || unit.currentHp <= 0) continue;
-
-      unit.skillUsedThisTurn = false;
-      unit.leapBonus = 0;
-
-      // Regeneration heal
-      if (unit.passiveId === "regeneration") {
-        const maxHp = getUnitMaxHp(unit);
-        unit.currentHp = Math.min(unit.currentHp + 1, maxHp);
-        addLog(state, `${getUnitDisplayName(unit)} restores 1 HP via Regeneration!`, "heal");
-      }
-    }
-    state.currentTurnIndex = 0;
-    checkVictory(state);
-    if (state.screen === "victory") return;
-  }
-
-  // Find next living unit
-  let attempts = 0;
-  while (attempts < state.turnOrder.length) {
-    const next = state.turnOrder[state.currentTurnIndex % state.turnOrder.length];
-    const unit = getUnitByRef(next.playerIndex, next.unitIndex, state.p1Team.placed, state.p2Team.placed);
-    if (unit && unit.currentHp > 0) {
-      // Reset invulnerability at start of turn
-      unit.invulnerable = false;
-      addLog(state, `${getUnitDisplayName(unit)}'s turn.`, "info");
-      return;
-    }
-    state.currentTurnIndex++;
-    attempts++;
-  }
-}
-
 function checkVictory(state: GameState): void {
   const p1Alive = state.p1Team.placed.some((u) => u.currentHp > 0);
   const p2Alive = state.p2Team.placed.some((u) => u.currentHp > 0);
 
   if (!p1Alive && !p2Alive) {
     state.screen = "victory";
-    state.winner = -1; // draw
+    state.winner = -1;
     addLog(state, "Draw! Both sides are annihilated.", "info");
   } else if (!p1Alive) {
     state.screen = "victory";

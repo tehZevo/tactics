@@ -6,7 +6,6 @@ import {
   getReachableTiles,
   getTurnUnit,
   isOwnUnit,
-  selectTile,
   placeUnit,
   currentMap,
 } from "../../state";
@@ -63,7 +62,7 @@ export function Board() {
       if (!walkable) tileClasses.push("unwalkable");
 
       // Deployment zone highlighting
-      if (state.screen === "deploy" || state.screen === "teamSelect") {
+      if (state.screen === "teamSelect") {
         if (state.deployTurn === 0 && c <= 2) {
           tileClasses.push("deployment-zone");
         } else if (state.deployTurn === 1 && c >= 7) {
@@ -124,12 +123,12 @@ export function Board() {
         }
       }
 
-      // During deployment, only show current player's units
+      // During team selection, hide opponent's units for PvP
       let unit = state.board[r][c];
-      if (state.screen === "deploy" && unit) {
+      if (state.screen === "teamSelect" && unit && state.deployTurn === 1) {
         const unitPlayer = unit.row < 5 ? 0 : 1;
         if (unitPlayer !== state.deployTurn) {
-          unit = null; // Hide opponent's units
+          unit = null; // Hide P1's units when P2 is placing
         }
       }
 
@@ -197,13 +196,7 @@ export function Board() {
           key={`${r}-${c}`}
           className={tileClasses.join(" ")}
           style={{ width: `${tileSize}px`, height: `${tileSize}px` }}
-          onClick={() => {
-            if (state.screen === "deploy" || state.screen === "teamSelect") {
-              placeUnit(r, c);
-            } else {
-              selectTile(r, c);
-            }
-          }}
+          onClick={() => placeUnit(r, c)}
         >
           {unitDiv}
         </div>

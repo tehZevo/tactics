@@ -3,7 +3,7 @@
 // ============================================================
 import type { MapLayout } from "../data/maps.js";
 
-export type Screen = "menu" | "teamSelect" | "deploy" | "battle" | "victory";
+export type Screen = "menu" | "teamSelect" | "battle" | "victory";
 
 export interface PlacedUnit {
   typeId: string;

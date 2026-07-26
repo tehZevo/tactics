@@ -13,20 +13,23 @@ import {
   getUnitMaxHp,
   isOwnUnit,
 } from "./helpers.js";
-import { executeAttack, executeMove, advanceTurn } from "./combat.js";
+import { executeAttack } from "./combat.js";
+import { executeMove } from "./moves.js";
+import { getTurnUnit, advanceTurn } from "./turns.js";
+import { notifySubscribers } from "../state.js";
 
 export function aiTakeTurn(state: GameState): void {
   const turnUnit = getTurnUnit(state);
   if (!turnUnit) return;
-  // AI always acts if it has AP and hasn't used a skill yet
   if (turnUnit.ap <= 0 || turnUnit.skillUsedThisTurn) {
     advanceTurn(state);
+    notifySubscribers();
     return;
   }
 
   // Simple AI: find best action
   const enemyUnits = state.turnOrder
-    .map((e) => getUnitByRef(e.playerIndex, e.unitIndex, state.p1Team.placed, state.p2Team.placed))
+    .map((e) => getUnitByRef(e, state.p1Team.placed, state.p2Team.placed))
     .filter((u): u is PlacedUnit => u !== null && u.currentHp > 0 && !isOwnUnit(turnUnit, u));
 
   if (enemyUnits.length === 0) return;
@@ -74,7 +77,7 @@ export function aiTakeTurn(state: GameState): void {
 
   // Also consider healing self/allies if low HP
   const myUnits = state.turnOrder
-    .map((e) => getUnitByRef(e.playerIndex, e.unitIndex, state.p1Team.placed, state.p2Team.placed))
+    .map((e) => getUnitByRef(e, state.p1Team.placed, state.p2Team.placed))
     .filter((u): u is PlacedUnit => u !== null && u.currentHp > 0 && isOwnUnit(turnUnit, u));
 
   const lowAllies = myUnits.filter((u) => u.currentHp < getUnitMaxHp(u) * 0.4);
@@ -100,10 +103,11 @@ export function aiTakeTurn(state: GameState): void {
   // Execute AI action
   if (bestAction === "attack" && bestTarget && bestSkill) {
     executeAttack(state, bestSkill, bestTarget);
+    notifySubscribers();
   } else if (bestAction === "skill" && bestTarget && bestSkill) {
     executeAttack(state, bestSkill, bestTarget);
+    notifySubscribers();
   } else {
-    // Move towards closest enemy
     const reachable = getReachableTiles(state, turnUnit);
     let bestMove: { row: number; col: number } | null = null;
     let bestMoveDist = closestDist;
@@ -119,19 +123,10 @@ export function aiTakeTurn(state: GameState): void {
 
     if (bestMove) {
       executeMove(state, bestMove.row, bestMove.col);
+      notifySubscribers();
     } else {
       advanceTurn(state);
+      notifySubscribers();
     }
   }
-}
-
-function getTurnUnit(state: GameState): PlacedUnit | null {
-  if (state.currentTurnIndex >= state.turnOrder.length) return null;
-  const { playerIndex, unitIndex } = state.turnOrder[state.currentTurnIndex];
-  const team = playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
-  if (unitIndex >= team.length) return null;
-  const unit = team[unitIndex];
-  // Skip dead units
-  if (unit.currentHp <= 0) return null;
-  return unit;
 }

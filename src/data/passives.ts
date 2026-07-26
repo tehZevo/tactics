@@ -46,7 +46,7 @@ export const PASSIVE_DEFS: Record<string, PassiveDef> = {
     name: "Swift",
     description: "+2 initiative. Act sooner in combat.",
     apply: (s) => ({ ...s, initiative: s.initiative + 2 }),
-    recommended: ["rogue", "archer", "phantom", "mage"],
+    recommended: ["rogue", "archer", "phantom", "wizard"],
   },
   bloodthirsty: {
     name: "Bloodthirsty",
@@ -58,7 +58,7 @@ export const PASSIVE_DEFS: Record<string, PassiveDef> = {
     name: "Fortitude",
     description: "+1 defense against area attacks. Protects backline casters.",
     apply: (s) => ({ ...s }),
-    recommended: ["mage", "cleric", "geomancer"],
+    recommended: ["wizard", "cleric", "geomancer"],
   },
   predation: {
     name: "Predation",
@@ -70,7 +70,7 @@ export const PASSIVE_DEFS: Record<string, PassiveDef> = {
     name: "Tracker",
     description: "+1 range on all attacks. Extends engagement distance.",
     apply: (s) => ({ ...s }),
-    recommended: ["archer", "mage", "cleric"],
+    recommended: ["archer", "wizard", "cleric"],
   },
   desperate: {
     name: "Desperate",

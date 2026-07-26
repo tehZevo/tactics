@@ -41,9 +41,9 @@ export const UNIT_TYPE_DEFS: Record<string, UnitTypeDef> = {
     skills: ["precise_shot", "trip_wire"],
     color: "#65a30d",
   },
-  mage: {
-    name: "Mage",
-    icon: "M",
+  wizard: {
+    name: "Wizard",
+    icon: "Wi",
     description: "Fragile AoE dealer with fireball and arcane missile.",
     hp: 4,
     baseAtk: 0,
@@ -127,7 +127,7 @@ export const UNIT_TYPE_DEFS: Record<string, UnitTypeDef> = {
   },
   battlemage: {
     name: "Battlemage",
-    icon: "BM",
+    icon: "Bm",
     description: "Mobile controller with swap and stun. excel at repositioning allies and disrupting enemies.",
     hp: 5,
     baseAtk: 1,

@@ -1,20 +1,25 @@
 // ============================================================
-//  STATE / HELPERS — board helpers, combat calculations
+//  STATE / HELPERS — pure helper functions
 // ============================================================
 import {
   BOARD_COLS,
   BOARD_ROWS,
-  MAX_AP,
-  AP_PER_TURN,
   UNIT_TYPE_DEFS,
   SKILL_DEFS,
   PASSIVE_DEFS,
 } from "../data/index.js";
-import { currentMap } from "../state.js";
 import type { SkillDef } from "../data/skills.js";
 import { GameState, PlacedUnit } from "./types.js";
 
-// ---- Board helpers ----
+export function getTurnUnit(state: GameState): PlacedUnit | null {
+  if (state.currentTurnIndex >= state.turnOrder.length) return null;
+  const { playerIndex, unitIndex } = state.turnOrder[state.currentTurnIndex];
+  const team = playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
+  if (unitIndex >= team.length) return null;
+  const unit = team[unitIndex];
+  if (unit.currentHp <= 0) return null;
+  return unit;
+}
 
 export function getUnitAt(state: GameState, row: number, col: number): PlacedUnit | null {
   if (row < 0 || row >= BOARD_ROWS || col < 0 || col >= BOARD_COLS) return null;
@@ -28,28 +33,35 @@ function manhattanDistance(r1: number, c1: number, r2: number, c2: number): numb
 export function getReachableTiles(state: GameState, unit: PlacedUnit): Set<string> {
   const reachable = new Set<string>();
   const maxDist = unit.movement + (unit.leapBonus || 0);
-  const map = currentMap();
-  // Simple BFS - each tile costs 1 movement
+  const map = state.map;
   const visited = new Set<string>();
   const queue: { row: number; col: number; dist: number }[] = [{ row: unit.row, col: unit.col, dist: 0 }];
   visited.add(`${unit.row},${unit.col}`);
+
   while (queue.length > 0) {
     const curr = queue.shift()!;
     if (curr.dist > 0) reachable.add(`${curr.row},${curr.col}`);
     if (curr.dist >= maxDist) continue;
+
     const neighbors = [
       [curr.row - 1, curr.col],
       [curr.row + 1, curr.col],
       [curr.row, curr.col - 1],
       [curr.row, curr.col + 1],
     ];
+
     for (const [nr, nc] of neighbors) {
       if (nr < 0 || nr >= BOARD_ROWS || nc < 0 || nc >= BOARD_COLS) continue;
       const key = `${nr},${nc}`;
       if (visited.has(key)) continue;
-      if (!map.grid[nr][nc]) continue; // unwalkable tile
-      const tileUnit = state.board[nr][nc];
-      if (tileUnit) continue; // blocked by unit
+      if (!map.grid[nr][nc]) continue;
+      const occupant = state.board[nr][nc];
+      if (occupant && isOwnUnit(unit, occupant)) {
+        visited.add(key);
+        queue.push({ row: nr, col: nc, dist: curr.dist + 1 });
+        continue;
+      }
+      if (occupant) continue;
       visited.add(key);
       queue.push({ row: nr, col: nc, dist: curr.dist + 1 });
     }
@@ -65,7 +77,6 @@ export function getTargetsInRange(
 ): PlacedUnit[] {
   const skill = SKILL_DEFS[skillId];
   let effectiveRange = range;
-  // Apply tracker passive
   if (unit.passiveId === "tracker") effectiveRange += 1;
 
   const targets: PlacedUnit[] = [];
@@ -77,28 +88,22 @@ export function getTargetsInRange(
       if (target.invulnerable) continue;
       const dist = manhattanDistance(unit.row, unit.col, r, c);
       if (dist > effectiveRange) continue;
-      
-      // Self-target skills
+
       if (skill.selfTarget && target === unit) {
         targets.push(target);
         continue;
       }
-      
-      // Heal skills: only allies (including self)
+
       if (skill.type === "heal" && isOwnUnit(unit, target) && dist > 0) {
         targets.push(target);
         continue;
       }
-      
-      // Attack skills: only enemies (or all enemies for full-screen)
+
       if (skill.type === "attack" && skill.aoe === 99) {
-        // Full-screen: damage all enemies
-        if (!isOwnUnit(unit, target)) {
-          targets.push(target);
-        }
+        if (!isOwnUnit(unit, target)) targets.push(target);
         continue;
       }
-      
+
       if (skill.type === "attack" && !isOwnUnit(unit, target) && dist > 0) {
         targets.push(target);
       }
@@ -114,12 +119,10 @@ export function calculateDamage(attacker: PlacedUnit, defender: PlacedUnit, skil
 
   let damage = (skill.damage || 0) + atkStats.attack;
 
-  // Defense reduction (unless skill ignores defense)
   if (!skill.ignoresDefense) {
     damage -= defStats.defense;
   }
 
-  // Predator passive: +1 vs half HP
   if (attacker.passiveId === "predation") {
     const predStats = PASSIVE_DEFS["predation"].apply({
       hp: UNIT_TYPE_DEFS[attacker.typeId].hp,
@@ -134,7 +137,6 @@ export function calculateDamage(attacker: PlacedUnit, defender: PlacedUnit, skil
     }
   }
 
-  // Fortitude passive: +1 def vs AoE
   if (skill.aoe && defender.passiveId === "fortitude") {
     damage -= 1;
   }
@@ -143,8 +145,8 @@ export function calculateDamage(attacker: PlacedUnit, defender: PlacedUnit, skil
 }
 
 export function getEffectiveStats(unit: PlacedUnit): { attack: number; defense: number } {
-  let atk = unit.typeId ? UNIT_TYPE_DEFS[unit.typeId].baseAtk : 0;
-  let def = unit.typeId ? UNIT_TYPE_DEFS[unit.typeId].baseDef : 0;
+  let atk = UNIT_TYPE_DEFS[unit.typeId].baseAtk;
+  let def = UNIT_TYPE_DEFS[unit.typeId].baseDef;
   if (unit.passiveId && PASSIVE_DEFS[unit.passiveId]) {
     const baseStats = {
       hp: UNIT_TYPE_DEFS[unit.typeId].hp,
@@ -161,6 +163,9 @@ export function getEffectiveStats(unit: PlacedUnit): { attack: number; defense: 
 }
 
 export function isOwnUnit(turnUnit: PlacedUnit, target: PlacedUnit): boolean {
+  if (turnUnit.playerIndex !== undefined && target.playerIndex !== undefined) {
+    return turnUnit.playerIndex === target.playerIndex;
+  }
   const turnTeam = turnUnit.row < 5 ? 0 : 1;
   const targetTeam = target.row < 5 ? 0 : 1;
   return turnTeam === targetTeam;
@@ -201,8 +206,8 @@ export function findUnitRef(unit: PlacedUnit, p1Team: PlacedUnit[], p2Team: Plac
   return null;
 }
 
-export function getUnitByRef(playerIndex: 0 | 1, unitIndex: number, p1Team: PlacedUnit[], p2Team: PlacedUnit[]): PlacedUnit | null {
-  const team = playerIndex === 0 ? p1Team : p2Team;
-  if (unitIndex >= team.length) return null;
-  return team[unitIndex];
+export function getUnitByRef(ref: { playerIndex: 0 | 1; unitIndex: number }, p1Team: PlacedUnit[], p2Team: PlacedUnit[]): PlacedUnit | null {
+  const team = ref.playerIndex === 0 ? p1Team : p2Team;
+  if (ref.unitIndex >= team.length) return null;
+  return team[ref.unitIndex];
 }

@@ -1,5 +1,7 @@
 /// <reference types="react" />
 import { Team } from "../state/types";
+import { UNIT_TYPE_DEFS } from "./unit-types";
+import { PASSIVE_DEFS } from "./passives";
 
 export interface PresetTeam {
   name: string;
@@ -12,7 +14,7 @@ export const PRESET_TEAMS: PresetTeam[] = [
     units: [
       { typeId: "warrior", passiveId: "toughened" },
       { typeId: "archer", passiveId: "nimble" },
-      { typeId: "mage", passiveId: "fortitude" },
+      { typeId: "wizard", passiveId: "fortitude" },
       { typeId: "cleric", passiveId: "nimble" },
       { typeId: "rogue", passiveId: "aggressive" },
       { typeId: "geomancer", passiveId: "hardened" },
@@ -33,10 +35,10 @@ export const PRESET_TEAMS: PresetTeam[] = [
     name: "Burst",
     units: [
       { typeId: "rogue", passiveId: "aggressive" },
-      { typeId: "mage", passiveId: "fortitude" },
+      { typeId: "wizard", passiveId: "fortitude" },
       { typeId: "archer", passiveId: "nimble" },
       { typeId: "phantom", passiveId: "swift" },
-      { typeId: "mage", passiveId: "fortitude" },
+      { typeId: "wizard", passiveId: "fortitude" },
       { typeId: "rogue", passiveId: "aggressive" },
     ],
   },
@@ -59,7 +61,7 @@ export const PRESET_TEAMS: PresetTeam[] = [
       { typeId: "rogue", passiveId: "aggressive" },
       { typeId: "phantom", passiveId: "swift" },
       { typeId: "archer", passiveId: "nimble" },
-      { typeId: "mage", passiveId: "fortitude" },
+      { typeId: "wizard", passiveId: "fortitude" },
     ],
   },
   {
@@ -78,17 +80,24 @@ export const PRESET_TEAMS: PresetTeam[] = [
 export function getRandomTeam(): Team {
   const preset = PRESET_TEAMS[Math.floor(Math.random() * PRESET_TEAMS.length)];
   return {
-    placed: preset.units.map((unit, index) => ({
-      ...unit,
-      row: Math.floor(index / 6),
-      col: index % 6,
-      currentHp: 10,
-      ap: 0,
-      movement: 5,
-      initiative: 5,
-      poisonTurns: 0,
-      skillUsedThisTurn: false,
-      invulnerable: false,
-    })),
+    placed: preset.units.map((unit, index) => {
+      const def = UNIT_TYPE_DEFS[unit.typeId];
+      const passive = unit.passiveId ? PASSIVE_DEFS[unit.passiveId] : null;
+      const stats = passive
+        ? passive.apply({ hp: def.hp, attack: def.baseAtk, defense: def.baseDef, movement: def.movement, initiative: def.initiative })
+        : { hp: def.hp, attack: def.baseAtk, defense: def.baseDef, movement: def.movement, initiative: def.initiative };
+      return {
+        ...unit,
+        row: Math.floor(index / 3),
+        col: 7 + (index % 3),
+        currentHp: stats.hp,
+        ap: 0,
+        movement: stats.movement,
+        initiative: stats.initiative,
+        poisonTurns: 0,
+        skillUsedThisTurn: false,
+        invulnerable: false,
+      };
+    }),
   };
 }

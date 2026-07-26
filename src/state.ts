@@ -22,7 +22,9 @@ import {
   getUnitDisplayName,
 } from "./state/helpers.js";
 import { SKILL_DEFS } from "./data/skills.js";
-import { executeAttack, executeMove, executeAoeAttack, executeLeap, getTurnUnit, advanceTurn } from "./state/combat.js";
+import { executeMove, executeLeap } from "./state/moves.js";
+import { executeAttack, executeAoeAttack } from "./state/combat.js";
+import { getTurnUnit, advanceTurn } from "./state/turns.js";
 import { getRandomMap } from "./data/maps.js";
 import { getRandomTeam } from "./data/teams.js";
 
@@ -136,19 +138,31 @@ export function selectDeployCell(row: number, col: number): void {
       if (index >= 0) {
         state.editingUnitIndex = index;
         state.selectedDeployCell = { row, col };
+        state.selectedUnitType = existingUnit.typeId;
+        state.selectedPassiveId = existingUnit.passiveId;
         notifySubscribers();
         return;
       }
     }
+    return; // Can't place on enemy units
   }
-
-  // Otherwise select the cell for new placement
-  if (row < 0 || row >= BOARD_ROWS || col < 0 || col >= BOARD_COLS) return;
 
   // Validate deployment zone
   if (state.deployTurn === 0 && col > 2) return;
   if (state.deployTurn === 1 && col < 7) return;
 
+  // If a unit type is selected, place it directly
+  if (state.selectedUnitType && team.placed.length < 6) {
+    const newUnit = createPlacedUnit(state.selectedUnitType, state.selectedPassiveId || "", row, col, state.deployTurn as 0 | 1);
+    team.placed.push(newUnit);
+    state.board[row][col] = newUnit;
+    state.editingUnitIndex = null;
+    state.selectedDeployCell = null;
+    notifySubscribers();
+    return;
+  }
+
+  // Otherwise just select the cell
   state.selectedDeployCell = { row, col };
   state.editingUnitIndex = null;
   notifySubscribers();
@@ -245,37 +259,24 @@ function checkDeploymentComplete(): boolean {
 export function confirmTeam(): void {
   if (state.currentTeam === 0) {
     if (isVsAI) {
-      // In vs AI mode, assign a random team to the computer
+      // AI mode: generate AI team and start battle directly
       const aiTeam = getRandomTeam();
       state.p2Team = aiTeam;
-      // Both teams ready, go to deploy
-      state.screen = "deploy";
-      state.deployTurn = 0;
+      startBattle();
+    } else {
+      // PvP: P1 done, switch to P2
+      state.currentTeam = 1;
+      state.deployTurn = 1;
       state.selectedDeployCell = null;
       state.editingUnitIndex = null;
-      notifySubscribers();
-    } else {
-      state.currentTeam = 1;
-      state.screen = "teamSelect";
+      state.selectedUnitType = null;
+      state.selectedPassiveId = null;
       notifySubscribers();
     }
   } else {
-    // Both players done, go to deploy
-    state.screen = "deploy";
-    state.deployTurn = 0;
-    state.selectedDeployCell = null;
-    state.editingUnitIndex = null;
-    notifySubscribers();
+    // PvP P2 done, start battle
+    startBattle();
   }
-}
-
-export function startDeployment(): void {
-  // Both teams have been set up
-  state.screen = "deploy";
-  state.deployTurn = 0;
-  state.selectedDeployCell = null;
-  state.editingUnitIndex = null;
-  notifySubscribers();
 }
 
 // ---- Unit/Passive Selection ----
@@ -303,7 +304,7 @@ export function getSelectedPassiveId(): string | null {
 
 export function placeUnit(row: number, col: number): void {
   // During deployment/team select, handle cell selection and unit editing
-  if (state.screen === "deploy" || state.screen === "teamSelect") {
+  if (state.screen === "teamSelect") {
     selectDeployCell(row, col);
     return;
   }
@@ -318,10 +319,10 @@ export function placeUnit(row: number, col: number): void {
     const isMyUnit = unit && isOwnUnit(turnUnit, unit);
 
     if (isMyUnit && unit === turnUnit) {
-      // Select this unit, show actions
       state.selectedUnit = findUnitRef(turnUnit, state.p1Team.placed, state.p2Team.placed);
       state.actionMode = "idle";
-      showActions(turnUnit);
+      state.actionMode = "selectAction";
+      state.selectedAction = null;
       notifySubscribers();
       return;
     }
@@ -353,14 +354,12 @@ export function placeUnit(row: number, col: number): void {
       return;
     }
     if (action.type === "aoeAttack") {
-      // Click any tile to center the AoE
       const caster = action.caster;
       const skill = SKILL_DEFS[action.skillId];
       const turnUnit = getTurnUnit(state);
       if (turnUnit && turnUnit.ap >= skill.cost && !turnUnit.skillUsedThisTurn) {
         turnUnit.skillUsedThisTurn = true;
         turnUnit.ap -= skill.cost;
-        // Find or create a PlacedUnit-like object for the center
         const centerUnit = state.board[row]?.[col] || caster;
         executeAoeAttack(state, caster, skill, action.skillId, centerUnit);
       }
@@ -390,41 +389,42 @@ export function placeUnit(row: number, col: number): void {
   notifySubscribers();
 }
 
-function showActions(unit: PlacedUnit): void {
-  state.actionMode = "selectAction";
-  state.selectedAction = null;
-}
-
 export function startTargeting(unit: PlacedUnit, skillId: string): void {
   const skill = SKILL_DEFS[skillId];
   state.actionMode = "selectTarget";
-  
-  // AoE skills: target a tile to center the area effect
+
   if (skill.aoe && skill.type === "attack") {
     state.selectedAction = { type: "aoeAttack", skillId, center: { row: unit.row, col: unit.col }, caster: unit };
     return;
   }
-  
-  // Leap: activate first, then player clicks destination
+
   if (skill.type === "movement" && skill.leapBonus) {
-    // Execute leap activation (applies leapBonus, costs AP)
     executeAttack(state, skillId, unit);
-    // Set up leap targeting - player will click a tile
     state.selectedAction = { type: "leap", target: { row: unit.row, col: unit.col } };
     notifySubscribers();
     return;
   }
-  
+
   state.selectedAction = { type: skill.type === "attack" ? "attack" : "skill", target: unit, skillId };
 }
 
 export function endTurn(): void {
   advanceTurn(state);
+  notifySubscribers();
 }
 
-function startBattle(): void {
+export function startBattle(): void {
   state.screen = "battle";
   addLog(state, "Battle begins!");
+
+  // Rebuild board from team data
+  state.board = Array.from({ length: BOARD_ROWS }, () => Array(BOARD_COLS).fill(null));
+  for (const unit of state.p1Team.placed) {
+    state.board[unit.row][unit.col] = unit;
+  }
+  for (const unit of state.p2Team.placed) {
+    state.board[unit.row][unit.col] = unit;
+  }
 
   // Build turn order from all placed units sorted by initiative (highest first)
   const allUnits: { playerIndex: 0 | 1; unitIndex: number; unit: PlacedUnit }[] = [];
@@ -437,7 +437,6 @@ function startBattle(): void {
   allUnits.sort((a, b) => {
     const aEff = getEffectiveStats(a.unit);
     const bEff = getEffectiveStats(b.unit);
-    // Initiative + attack as tiebreaker
     const aScore = a.unit.initiative + aEff.attack;
     const bScore = b.unit.initiative + bEff.attack;
     return bScore - aScore;
@@ -453,88 +452,6 @@ function startBattle(): void {
   if (firstUnit) {
     addLog(state, `${getUnitDisplayName(firstUnit)} leads the charge.`, "info");
   }
-  notifySubscribers();
-}
-
-export function selectTile(row: number, col: number): void {
-  const unit = getUnitAt(state, row, col);
-
-  // If in action selection mode
-  if (state.actionMode === "selectAction") {
-    const turnUnit = getTurnUnit(state);
-    if (!turnUnit) return;
-    const isMyUnit = unit && isOwnUnit(turnUnit, unit);
-
-    if (isMyUnit && unit === turnUnit) {
-      // Select this unit, show actions
-      state.selectedUnit = findUnitRef(turnUnit, state.p1Team.placed, state.p2Team.placed);
-      state.actionMode = "idle";
-      showActions(turnUnit);
-      notifySubscribers();
-      return;
-    }
-    if (isMyUnit && unit !== turnUnit) {
-      state.selectedUnit = findUnitRef(unit, state.p1Team.placed, state.p2Team.placed);
-      notifySubscribers();
-      return;
-    }
-    // Clicked enemy or empty - cancel
-    state.actionMode = "idle";
-    state.selectedAction = null;
-    notifySubscribers();
-    return;
-  }
-
-  // If in target selection mode
-  if (state.actionMode === "selectTarget") {
-    const action = state.selectedAction;
-    if (!action) return;
-
-    if (action.type === "move") {
-      executeMove(state, action.target.row, action.target.col);
-      notifySubscribers();
-      return;
-    }
-    if (action.type === "leap") {
-      executeLeap(state, row, col);
-      notifySubscribers();
-      return;
-    }
-    if (action.type === "aoeAttack") {
-      // Click any tile to center the AoE
-      const caster = action.caster;
-      const skill = SKILL_DEFS[action.skillId];
-      const turnUnit = getTurnUnit(state);
-      if (turnUnit && turnUnit.ap >= skill.cost && !turnUnit.skillUsedThisTurn) {
-        turnUnit.skillUsedThisTurn = true;
-        turnUnit.ap -= skill.cost;
-        // Find or create a PlacedUnit-like object for the center
-        const centerUnit = state.board[row]?.[col] || caster;
-        executeAoeAttack(state, caster, skill, action.skillId, centerUnit);
-      }
-      state.actionMode = "idle";
-      state.selectedAction = null;
-      notifySubscribers();
-      return;
-    }
-    if (action.type === "attack" || action.type === "skill") {
-      executeAttack(state, action.skillId, unit!);
-      notifySubscribers();
-      return;
-    }
-  }
-
-  // Default: select a unit
-  if (unit) {
-    state.selectedUnit = findUnitRef(unit, state.p1Team.placed, state.p2Team.placed);
-    notifySubscribers();
-    return;
-  }
-
-  // Clicked empty tile - deselect
-  state.selectedUnit = null;
-  state.actionMode = "idle";
-  state.selectedAction = null;
   notifySubscribers();
 }
 
@@ -566,7 +483,9 @@ export function notifySubscribers(): void {
 
 // ---- Re-exports from submodules ----
 
-export { executeAttack, executeMove, executeLeap, getTurnUnit, advanceTurn } from "./state/combat";
+export { executeAttack, executeAoeAttack } from "./state/combat";
+export { executeMove, executeLeap } from "./state/moves";
+export { getTurnUnit, advanceTurn } from "./state/turns";
 export { aiTakeTurn } from "./state/ai";
 export { isOwnUnit, getUnitDisplayName, getReachableTiles, getEffectiveStats, getUnitMaxHp, getUnitAt, getTargetsInRange, calculateDamage, addLog, findUnitRef, getUnitByRef } from "./state/helpers";
 export type { GameState, PlacedUnit } from "./state/types";
