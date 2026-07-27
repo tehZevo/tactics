@@ -1,6 +1,15 @@
 // ============================================================
 //  SKILLS — all skill definitions
 // ============================================================
+import type { GameState, PlacedUnit } from "../state/types.js";
+
+export type SkillApplyFn = (
+  state: GameState,
+  caster: PlacedUnit,
+  target: PlacedUnit | null,
+  skillId: string,
+  location?: { row: number; col: number },
+) => void;
 
 export interface SkillDef {
   name: string;
@@ -19,6 +28,7 @@ export interface SkillDef {
   selfDamage?: number; // HP the user loses when using this skill
   leapBonus?: number; // extra movement range granted by this skill
   swapTarget?: boolean; // if true, swaps user with target
+  apply?: SkillApplyFn;
 }
 
 export const SKILL_DEFS: Record<string, SkillDef> = {

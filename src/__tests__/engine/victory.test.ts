@@ -3,7 +3,7 @@
 // ============================================================
 import { describe, it, expect } from "vitest";
 import { applyAction } from "../../state/game-engine.js";
-import { attack, startBattle } from "../../state/actions/index.js";
+import { useSkill, startBattle } from "../../state/actions/index.js";
 import { createTestState, placeUnit } from "../../__tests__/test-fixtures.js";
 import { UNIT_TYPE_DEFS } from "../../data/index.js";
 
@@ -50,7 +50,7 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[1][0] = p1Unit;
     state.board[2][0] = p2Unit;
 
-    const result = applyAction(state, attack(
+    const result = applyAction(state, useSkill(
       { playerIndex: 0, unitIndex: 0 },
       { playerIndex: 1, unitIndex: 0 },
       "power_strike"
@@ -102,7 +102,7 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[1][0] = p1Unit;
     state.board[2][0] = p2Unit;
 
-    const result = applyAction(state, attack(
+    const result = applyAction(state, useSkill(
       { playerIndex: 1, unitIndex: 0 },
       { playerIndex: 0, unitIndex: 0 },
       "power_strike"
@@ -155,14 +155,14 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[4][0] = p2Unit;
 
     // First kill both units
-    const step1 = applyAction(state, attack(
+    const step1 = applyAction(state, useSkill(
       { playerIndex: 0, unitIndex: 0 },
       { playerIndex: 1, unitIndex: 0 },
       "power_strike"
     ));
 
     // Now kill P1 unit
-    const step2 = applyAction(step1, attack(
+    const step2 = applyAction(step1, useSkill(
       { playerIndex: 1, unitIndex: 0 },
       { playerIndex: 0, unitIndex: 0 },
       "power_strike"
@@ -217,7 +217,7 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[2][0] = p2Unit;
 
     // Deal some damage but not enough to kill
-    const result = applyAction(state, attack(
+    const result = applyAction(state, useSkill(
       { playerIndex: 0, unitIndex: 0 },
       { playerIndex: 1, unitIndex: 0 },
       "power_strike"
@@ -272,7 +272,7 @@ describe("Game Engine — Victory Conditions", () => {
     const battleState = applyAction(state, startBattle(state.p1Team, state.p2Team, state.map));
 
     // Kill the archer
-    const combatState = applyAction(battleState, attack(
+    const combatState = applyAction(battleState, useSkill(
       { playerIndex: 0, unitIndex: 0 },
       { playerIndex: 1, unitIndex: 0 },
       "power_strike"
