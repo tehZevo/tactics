@@ -52,10 +52,13 @@ export function createPlacedUnit(typeId: string, passiveId: string, row: number,
     currentHp: stats.hp,
     ap: 0,
     movement: stats.movement,
+    baseMovement: stats.movement,
     initiative: stats.initiative,
     skillUsedThisTurn: false,
     invulnerable: false,
     leapBonus: 0,
+    turnStartRow: row,
+    turnStartCol: col,
   };
 }
 
@@ -238,6 +241,7 @@ export function setUnitType(index: number, typeId: string): void {
   unit.typeId = typeId;
   unit.currentHp = UNIT_TYPE_DEFS[typeId].hp;
   unit.movement = UNIT_TYPE_DEFS[typeId].movement;
+  unit.baseMovement = UNIT_TYPE_DEFS[typeId].movement;
   unit.initiative = UNIT_TYPE_DEFS[typeId].initiative;
 
   // Recalculate stats from passive
@@ -251,6 +255,7 @@ export function setUnitType(index: number, typeId: string): void {
     });
     unit.currentHp = stats.hp;
     unit.movement = stats.movement;
+    unit.baseMovement = stats.movement;
     unit.initiative = stats.initiative;
   }
 
@@ -403,6 +408,14 @@ export function startTargeting(unit: PlacedUnit, skillId: string): void {
   const skill = SKILL_DEFS[skillId];
   state.actionMode = "selectTarget";
 
+  if (skill.selfTarget) {
+    executeAttack(state, skillId, unit);
+    state.actionMode = "idle";
+    state.selectedAction = null;
+    notifySubscribers();
+    return;
+  }
+
   if (skill.aoe && skill.type === "attack") {
     state.selectedAction = { type: "aoeAttack", skillId, center: { row: unit.row, col: unit.col }, caster: unit };
     return;
@@ -416,6 +429,7 @@ export function startTargeting(unit: PlacedUnit, skillId: string): void {
   }
 
   state.selectedAction = { type: skill.type === "attack" ? "attack" : "skill", target: unit, skillId };
+  notifySubscribers();
 }
 
 export function endTurn(): void {

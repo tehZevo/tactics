@@ -1223,6 +1223,9 @@ body {
   max-width: 100%;
   overflow: hidden;
   flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .board {
   display: grid;
@@ -1236,7 +1239,6 @@ body {
 }
 .tile {
   width: 52px;
-  min-width: 52px;
   height: 52px;
   display: flex;
   align-items: center;

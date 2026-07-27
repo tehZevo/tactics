@@ -3,6 +3,7 @@
 // ============================================================
 import { describe, it, expect } from "vitest";
 import { applyAction } from "../../state/game-engine.js";
+import { move } from "../../state/actions/index.js";
 import { createTestState, placeUnit, getUnitFromState } from "../../__tests__/test-fixtures.js";
 import { UNIT_TYPE_DEFS } from "../../data/index.js";
 
@@ -18,21 +19,18 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
     };
 
     state.p1Team.placed = [unit1];
     state.board[1][0] = unit1;
 
-    const result = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 3,
-      targetCol: 0,
-    });
+    const result = applyAction(state, move(3, 0));
 
     expect(result.board[1][0]).toBeNull();
     const movedUnit = result.board[3][0];
@@ -53,21 +51,18 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
     };
 
     state.p1Team.placed = [unit1];
     state.board[1][0] = unit1;
 
-    const result = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 5,
-      targetCol: 0,
-    });
+    const result = applyAction(state, move(5, 0));
 
     expect(result.board[1][0]).not.toBeNull();
   });
@@ -83,10 +78,12 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
     };
 
     const unit2 = {
@@ -97,22 +94,19 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["archer"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 2, turnStartCol: 0,
     };
 
     state.p1Team.placed = [unit1, unit2];
     state.board[1][0] = unit1;
     state.board[2][0] = unit2;
 
-    const result = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 2,
-      targetCol: 0,
-    });
+    const result = applyAction(state, move(2, 0));
 
     expect(result.board[1][0]).not.toBeNull();
   });
@@ -128,21 +122,18 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 2,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
     };
 
     state.p1Team.placed = [unit1];
     state.board[1][0] = unit1;
 
-    const result = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 2,
-      targetCol: 0,
-    });
+    const result = applyAction(state, move(2, 0));
 
     const movedUnit = getUnitFromState(result, 0, 0);
     expect(movedUnit).not.toBeNull();
@@ -160,28 +151,20 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 2,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
     };
 
     state.p1Team.placed = [unit1];
     state.board[1][0] = unit1;
 
-    const step1 = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 2,
-      targetCol: 0,
-    });
+    const step1 = applyAction(state, move(2, 0));
 
-    const step2 = applyAction(step1, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 2,
-      targetCol: 1,
-    });
+    const step2 = applyAction(step1, move(2, 1));
 
     const movedUnit = step2.board[2][1];
     expect(movedUnit).not.toBeNull();
@@ -203,10 +186,12 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
     };
 
     const archer = {
@@ -217,33 +202,25 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["archer"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 1,
     };
 
     state.p1Team.placed = [warrior, archer];
     state.board[1][0] = warrior;
     state.board[1][1] = archer;
 
-    const result = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 1 },
-      targetRow: 1,
-      targetCol: 5,
-    });
+    const result = applyAction(state, move(1, 5));
 
     const movedArchers = result.board[1][5];
     expect(movedArchers).not.toBeNull();
     expect(movedArchers!.typeId).toBe("archer");
 
-    const warriorResult = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 1,
-      targetCol: 5,
-    });
+    const warriorResult = applyAction(state, move(1, 5));
 
     expect(warriorResult.board[1][0]).not.toBeNull();
   });
@@ -259,10 +236,12 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 1,
     };
 
     const mover = {
@@ -273,22 +252,19 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
     };
 
     state.p1Team.placed = [mover, blocker];
     state.board[1][0] = mover;
     state.board[1][1] = blocker;
 
-    const result = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 1,
-      targetCol: 3,
-    });
+    const result = applyAction(state, move(1, 3));
 
     const movedUnit = result.board[1][3];
     expect(movedUnit).not.toBeNull();
@@ -309,10 +285,12 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
     };
 
     const unit2 = {
@@ -323,22 +301,19 @@ describe("Game Engine — Movement", () => {
       currentHp: UNIT_TYPE_DEFS["archer"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 3, turnStartCol: 0,
     };
 
     state.p1Team.placed = [unit1, unit2];
     state.board[1][0] = unit1;
     state.board[3][0] = unit2;
 
-    const result = applyAction(state, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 3,
-      targetCol: 0,
-    });
+    const result = applyAction(state, move(3, 0));
 
     expect(result.board[1][0]).not.toBeNull();
   });

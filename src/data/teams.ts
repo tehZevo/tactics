@@ -108,10 +108,13 @@ export function getRandomTeam(): Team {
         currentHp: stats.hp,
         ap: 0,
         movement: stats.movement,
+        baseMovement: stats.movement,
         initiative: stats.initiative,
         poisonTurns: 0,
         skillUsedThisTurn: false,
         invulnerable: false,
+        turnStartRow: pos.row,
+        turnStartCol: pos.col,
       };
     }),
   };

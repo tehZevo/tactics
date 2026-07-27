@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyAction } from "../../state/game-engine.js";
+import { attack } from "../../state/actions/index.js";
 import { getUnitFromState } from "../test-fixtures.js";
 import { createTestState } from "../test-fixtures.js";
 
@@ -15,10 +16,12 @@ describe("Game Engine — Passive Effects", () => {
       currentHp: 100,
       ap: 1,
       movement: 4,
+      baseMovement: 4,
       initiative: 5,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 2, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -30,10 +33,12 @@ describe("Game Engine — Passive Effects", () => {
       currentHp: 50,
       ap: 1,
       movement: 6,
+      baseMovement: 6,
       initiative: 3,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 3, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -46,12 +51,11 @@ describe("Game Engine — Passive Effects", () => {
     console.log("  Attacker:", state.p1Team.placed[0].playerIndex, "at", state.p1Team.placed[0].row, state.p1Team.placed[0].col);
     console.log("  Target:", state.p2Team.placed[0].playerIndex, "at", state.p2Team.placed[0].row, state.p2Team.placed[0].col);
     
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     console.log("Result log:", result.log);
     const targetUnit = getUnitFromState(result, 1, 0);
@@ -71,10 +75,12 @@ describe("Game Engine — Passive Effects", () => {
       currentHp: 60,
       ap: 1,
       movement: 6,
+      baseMovement: 6,
       initiative: 3,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 2, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -86,10 +92,12 @@ describe("Game Engine — Passive Effects", () => {
       currentHp: 40,
       ap: 1,
       movement: 6,
+      baseMovement: 6,
       initiative: 3,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 3, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -98,12 +106,11 @@ describe("Game Engine — Passive Effects", () => {
     state.board[2][0] = unit1;
     state.board[3][0] = unit2;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     const targetUnit = getUnitFromState(result, 1, 0);
     expect(targetUnit).not.toBeNull();
@@ -121,10 +128,12 @@ describe("Game Engine — Passive Effects", () => {
       currentHp: 90,
       ap: 1,
       movement: 3,
+      baseMovement: 3,
       initiative: 5,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 2, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -136,10 +145,12 @@ describe("Game Engine — Passive Effects", () => {
       currentHp: 30,
       ap: 1,
       movement: 6,
+      baseMovement: 6,
       initiative: 3,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 3, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -148,12 +159,11 @@ describe("Game Engine — Passive Effects", () => {
     state.board[2][0] = unit1;
     state.board[3][0] = unit2;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 1, unitIndex: 0 },
-      targetRef: { playerIndex: 0, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 1, unitIndex: 0 },
+      { playerIndex: 0, unitIndex: 0 },
+      "power_strike"
+    ));
 
     const targetUnit = getUnitFromState(result, 0, 0);
     expect(targetUnit).not.toBeNull();

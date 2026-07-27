@@ -3,6 +3,7 @@
 // ============================================================
 import { describe, it, expect } from "vitest";
 import { applyAction } from "../../state/game-engine.js";
+import { move, endTurn } from "../../state/actions/index.js";
 import { startTestBattle, getUnitFromState } from "../../__tests__/test-fixtures.js";
 
 describe("Game Engine — Basic Actions", () => {
@@ -23,12 +24,7 @@ describe("Game Engine — Basic Actions", () => {
       [{ typeId: "archer", passiveId: "nimble", col: 5 }]
     );
 
-    const result = applyAction(battleState, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 1,
-      targetCol: 0,
-    });
+    const result = applyAction(battleState, move(1, 0));
 
     expect(result.board[0][0]).toBeNull();
     expect(result.board[1][0]?.typeId).toBe("warrior");
@@ -40,12 +36,7 @@ describe("Game Engine — Basic Actions", () => {
       [{ typeId: "archer", passiveId: "nimble", col: 5 }]
     );
 
-    const result = applyAction(battleState, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 5,
-      targetCol: 5,
-    });
+    const result = applyAction(battleState, move(5, 5));
 
     expect(result.board[0][0]).not.toBeNull();
   });
@@ -56,7 +47,7 @@ describe("Game Engine — Basic Actions", () => {
       [{ typeId: "archer", passiveId: "nimble", col: 0 }]
     );
 
-    const result = applyAction(battleState, { type: "endTurn" });
+    const result = applyAction(battleState, endTurn());
     expect(result.currentTurnIndex).toBeGreaterThan(0);
   });
 
@@ -72,12 +63,7 @@ describe("Game Engine — Basic Actions", () => {
     unit.currentHp = 0;
     deadState.board[unit.row][unit.col] = null;
 
-    const result = applyAction(deadState, {
-      type: "move",
-      unitRef: { playerIndex: 0, unitIndex: 0 },
-      targetRow: 1,
-      targetCol: 0,
-    });
+    const result = applyAction(deadState, move(1, 0));
 
     // Unit should still be in original position (or nowhere if board was cleared)
     expect(result.board[unit.row][unit.col]).toBeNull();

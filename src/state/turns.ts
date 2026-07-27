@@ -35,6 +35,9 @@ export function advanceTurn(state: GameState): GameState {
 
       unit.skillUsedThisTurn = false;
       unit.leapBonus = 0;
+      unit.movement = unit.baseMovement;
+      unit.turnStartRow = unit.row;
+      unit.turnStartCol = unit.col;
 
       if (unit.passiveId === "regeneration") {
         const maxHp = getUnitMaxHp(unit);
@@ -53,6 +56,8 @@ export function advanceTurn(state: GameState): GameState {
     const unit = getUnitByRef(next, state.p1Team.placed, state.p2Team.placed);
     if (unit && unit.currentHp > 0) {
       unit.invulnerable = false;
+      unit.turnStartRow = unit.row;
+      unit.turnStartCol = unit.col;
       let apGain = 1;
       if (unit.passiveId === "desperate") apGain += 1;
       unit.ap = Math.min(unit.ap + apGain, MAX_AP);
@@ -113,6 +118,8 @@ export function startBattle(state: GameState): void {
   const firstUnit = getTurnUnit(state);
   if (firstUnit) {
     firstUnit.ap = 1;
+    firstUnit.turnStartRow = firstUnit.row;
+    firstUnit.turnStartCol = firstUnit.col;
     addLog(state, `${getUnitDisplayName(firstUnit)} leads the charge.`, "info");
   }
 }

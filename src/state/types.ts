@@ -13,10 +13,13 @@ export interface PlacedUnit {
   currentHp: number;
   ap: number;
   movement: number;
+  baseMovement: number;
   initiative: number;
   skillUsedThisTurn: boolean; // track if skill was used this turn (1 skill limit)
   invulnerable: boolean; // cannot be targeted by attacks/heals until next turn
   leapBonus?: number; // temporary extra movement from Leap skill
+  turnStartRow: number; // position at start of turn (for movement radius)
+  turnStartCol: number;
   playerIndex?: 0 | 1; // which player controls this unit (optional, falls back to row-based)
 }
 

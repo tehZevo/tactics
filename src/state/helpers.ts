@@ -55,6 +55,11 @@ export function getReachableTiles(state: GameState, unit: PlacedUnit): Set<strin
       const key = `${nr},${nc}`;
       if (visited.has(key)) continue;
       if (!map.grid[nr][nc]) continue;
+      // Before skill use, limit to movement radius from turn start position
+      if (!unit.skillUsedThisTurn) {
+        const distFromStart = Math.abs(nr - unit.turnStartRow) + Math.abs(nc - unit.turnStartCol);
+        if (distFromStart > unit.movement) continue;
+      }
       const occupant = state.board[nr][nc];
       if (occupant && isOwnUnit(unit, occupant)) {
         visited.add(key);
@@ -105,6 +110,14 @@ export function getTargetsInRange(
       }
 
       if (skill.type === "attack" && !isOwnUnit(unit, target) && dist > 0) {
+        targets.push(target);
+      }
+
+      if (skill.type === "apDrain" && !isOwnUnit(unit, target) && dist > 0) {
+        targets.push(target);
+      }
+
+      if (skill.swapTarget && dist > 0) {
         targets.push(target);
       }
     }

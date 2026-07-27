@@ -18,10 +18,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -33,10 +35,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: UNIT_TYPE_DEFS["archer"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -66,10 +70,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -81,10 +87,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: UNIT_TYPE_DEFS["archer"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -113,10 +121,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: UNIT_TYPE_DEFS["warrior"].hp,
       ap: 0,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -128,10 +138,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: UNIT_TYPE_DEFS["archer"].hp,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -163,10 +175,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: 0,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -178,10 +192,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: 50,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -210,10 +226,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: 50,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: 5,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -225,10 +243,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: 50,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: 3,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -255,10 +275,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: 50,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: 5,
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -270,10 +292,12 @@ describe("Game Engine — Turn Management", () => {
       currentHp: 50,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: 3,
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
+      turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 

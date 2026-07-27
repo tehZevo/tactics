@@ -3,6 +3,7 @@
 // ============================================================
 import { describe, it, expect } from "vitest";
 import { applyAction } from "../../state/game-engine.js";
+import { attack } from "../../state/actions/index.js";
 import { startTestBattle, getUnitFromState } from "../../__tests__/test-fixtures.js";
 import { UNIT_TYPE_DEFS } from "../../data/index.js";
 
@@ -13,12 +14,11 @@ describe("Game Engine — Combat", () => {
       [{ typeId: "archer", passiveId: "nimble", col: 0, row: 3 }]
     );
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     const targetUnit = getUnitFromState(result, 1, 0);
     expect(targetUnit).not.toBeNull();
@@ -36,12 +36,11 @@ describe("Game Engine — Combat", () => {
     const warrior = getUnitFromState(state, 0, 0)!;
     warrior.ap = 3;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     const attackerUnit = getUnitFromState(result, 0, 0);
     expect(attackerUnit).not.toBeNull();
@@ -55,12 +54,11 @@ describe("Game Engine — Combat", () => {
     );
 
     // Warrior has 1 AP, whirlwind costs 3
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "whirlwind",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "whirlwind"
+    ));
 
     const targetUnit = getUnitFromState(result, 1, 0);
     expect(targetUnit).not.toBeNull();
@@ -78,19 +76,17 @@ describe("Game Engine — Combat", () => {
     warrior.ap = 10;
 
     // Attack twice to kill archer (5 HP)
-    let result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    let result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
-    result = applyAction(result, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    result = applyAction(result, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     const targetUnit = getUnitFromState(result, 1, 0);
     expect(targetUnit).not.toBeNull();
@@ -108,12 +104,11 @@ describe("Game Engine — Combat", () => {
     const rogue = getUnitFromState(state, 0, 0)!;
     rogue.ap = 3;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "soul_drain",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "soul_drain"
+    ));
 
     const attackerUnit = getUnitFromState(result, 0, 0);
     const targetUnit = getUnitFromState(result, 1, 0);
@@ -140,12 +135,11 @@ describe("Game Engine — Combat", () => {
     const warrior = getUnitFromState(state, 0, 1)!;
     warrior.currentHp = 5;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 0, unitIndex: 1 },
-      skillId: "lay_on_hands",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 0, unitIndex: 1 },
+      "lay_on_hands"
+    ));
 
     const targetUnit = getUnitFromState(result, 0, 1);
     expect(targetUnit).not.toBeNull();
@@ -162,12 +156,11 @@ describe("Game Engine — Combat", () => {
     const paladin = getUnitFromState(state, 0, 0)!;
     paladin.ap = 5;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "lay_on_hands",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "lay_on_hands"
+    ));
 
     // Should not heal enemy - check that no heal happened
     const targetUnit = getUnitFromState(result, 1, 0);
@@ -185,12 +178,11 @@ describe("Game Engine — Combat", () => {
     const archer = getUnitFromState(state, 1, 0)!;
     archer.invulnerable = true;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     const targetUnit = getUnitFromState(result, 1, 0);
     expect(targetUnit).not.toBeNull();

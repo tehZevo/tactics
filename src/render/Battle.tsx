@@ -44,15 +44,6 @@ export function Battle() {
     }
   };
 
-  const handleMove = () => {
-    const turnUnit = getTurnUnit(state);
-    if (!turnUnit) return;
-    state.selectedUnit = { playerIndex: turnUnit.playerIndex ?? getPlayerIndex(turnUnit), unitIndex: state.turnOrder[state.currentTurnIndex]?.unitIndex ?? 0 };
-    state.actionMode = "idle";
-    state.selectedAction = null;
-    notifySubscribers();
-  };
-
   const turnUnit = getTurnUnit(state);
   const playerIdx = turnUnit ? getPlayerIndex(turnUnit) : null;
   const turnTd = turnUnit ? UNIT_TYPE_DEFS[turnUnit.typeId] : null;
@@ -105,9 +96,6 @@ export function Battle() {
           <Board />
           {isHumanTurn && (
             <div className="action-bar">
-              <button className="btn btn-sm" onClick={handleMove}>
-                Move
-              </button>
               {skillButtons.map((sb) => (
                 <button
                   key={sb.id}

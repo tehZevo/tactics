@@ -203,8 +203,17 @@ export function Board() {
         }
         if (state.actionMode === "selectTarget" && state.selectedAction) {
           const a = state.selectedAction;
-          if ((a.type === "attack" || a.type === "skill") && state.board[r][c] === a.target) {
-            tileClasses.push(a.type === "attack" ? "attack-highlight" : "skill-highlight");
+          if (a.type === "attack" || a.type === "skill") {
+            const tu = getTurnUnit(state);
+            if (tu) {
+              const skill = SKILL_DEFS[a.skillId];
+              if (skill) {
+                const targets = getTargetsInRange(tu, skill.range, a.skillId, state);
+                if (targets.some(t => t.row === r && t.col === c)) {
+                  tileClasses.push(a.type === "attack" ? "attack-highlight" : "skill-highlight");
+                }
+              }
+            }
           }
           if (a.type === "leap") {
             const tu = getTurnUnit(state);

@@ -46,6 +46,8 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
   // AoE attack: hit all enemies within radius of target
   if (skill.aoe && skill.type === "attack") {
     turnUnit.skillUsedThisTurn = true;
+    const displacement = Math.abs(turnUnit.row - turnUnit.turnStartRow) + Math.abs(turnUnit.col - turnUnit.turnStartCol);
+    turnUnit.movement -= displacement;
     turnUnit.ap -= skill.cost;
     executeAoeAttack(state, turnUnit, skill, skillId, target);
     state.actionMode = "idle";
@@ -59,6 +61,8 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
   if (skill.type === "attack" && isOwnUnit(turnUnit, target)) return;
 
   turnUnit.skillUsedThisTurn = true;
+  const displacement = Math.abs(turnUnit.row - turnUnit.turnStartRow) + Math.abs(turnUnit.col - turnUnit.turnStartCol);
+  turnUnit.movement -= displacement;
 
   if (skill.type === "attack") {
     const damage = calculateDamage(turnUnit, target, skillId);

@@ -3,6 +3,7 @@
 // ============================================================
 import { describe, it, expect } from "vitest";
 import { applyAction } from "../../state/game-engine.js";
+import { attack, startBattle } from "../../state/actions/index.js";
 import { createTestState, placeUnit } from "../../__tests__/test-fixtures.js";
 import { UNIT_TYPE_DEFS } from "../../data/index.js";
 
@@ -18,10 +19,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 8,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -33,10 +36,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 5,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 2, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -45,12 +50,11 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[1][0] = p1Unit;
     state.board[2][0] = p2Unit;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     expect(result.screen).toBe("victory");
     expect(result.winner).toBe(0);
@@ -67,10 +71,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 4,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -82,10 +88,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 8,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 2, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -94,12 +102,11 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[1][0] = p1Unit;
     state.board[2][0] = p2Unit;
 
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 1, unitIndex: 0 },
-      targetRef: { playerIndex: 0, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 1, unitIndex: 0 },
+      { playerIndex: 0, unitIndex: 0 },
+      "power_strike"
+    ));
 
     expect(result.screen).toBe("victory");
     expect(result.winner).toBe(1);
@@ -116,10 +123,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 1,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -131,10 +140,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 1,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -144,20 +155,18 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[4][0] = p2Unit;
 
     // First kill both units
-    const step1 = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const step1 = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     // Now kill P1 unit
-    const step2 = applyAction(step1, {
-      type: "attack",
-      attackerRef: { playerIndex: 1, unitIndex: 0 },
-      targetRef: { playerIndex: 0, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const step2 = applyAction(step1, attack(
+      { playerIndex: 1, unitIndex: 0 },
+      { playerIndex: 0, unitIndex: 0 },
+      "power_strike"
+    ));
 
     // Check if we reached victory state
     if (step2.screen === "victory") {
@@ -176,10 +185,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 8,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -191,10 +202,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 7,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 2, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -204,12 +217,11 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[2][0] = p2Unit;
 
     // Deal some damage but not enough to kill
-    const result = applyAction(state, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const result = applyAction(state, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     expect(result.screen).not.toBe("victory");
     expect(result.winner).toBeNull();
@@ -226,10 +238,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 8,
       ap: 1,
       movement: UNIT_TYPE_DEFS["warrior"].movement,
+      baseMovement: UNIT_TYPE_DEFS["warrior"].movement,
       initiative: UNIT_TYPE_DEFS["warrior"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
 
@@ -241,10 +255,12 @@ describe("Game Engine — Victory Conditions", () => {
       currentHp: 5,
       ap: 1,
       movement: UNIT_TYPE_DEFS["archer"].movement,
+      baseMovement: UNIT_TYPE_DEFS["archer"].movement,
       initiative: UNIT_TYPE_DEFS["archer"].initiative,
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: 2, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
 
@@ -253,20 +269,14 @@ describe("Game Engine — Victory Conditions", () => {
     state.board[1][0] = p1Unit;
     state.board[2][0] = p2Unit;
 
-    const battleState = applyAction(state, {
-      type: "startBattle",
-      p1Team: state.p1Team,
-      p2Team: state.p2Team,
-      map: state.map,
-    });
+    const battleState = applyAction(state, startBattle(state.p1Team, state.p2Team, state.map));
 
     // Kill the archer
-    const combatState = applyAction(battleState, {
-      type: "attack",
-      attackerRef: { playerIndex: 0, unitIndex: 0 },
-      targetRef: { playerIndex: 1, unitIndex: 0 },
-      skillId: "power_strike",
-    });
+    const combatState = applyAction(battleState, attack(
+      { playerIndex: 0, unitIndex: 0 },
+      { playerIndex: 1, unitIndex: 0 },
+      "power_strike"
+    ));
 
     // Turn should be over due to victory
     expect(combatState.screen).toBe("victory");

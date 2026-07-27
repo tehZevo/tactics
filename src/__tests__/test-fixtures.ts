@@ -2,6 +2,7 @@
 //  TEST FIXTURES — helpers for creating test state
 // ============================================================
 import { applyAction } from "../state/game-engine.js";
+import { startBattle } from "../state/actions/index.js";
 import { MapLayout } from "../data/maps.js";
 import { Team, GameState } from "../state/types.js";
 import type { PlacedUnit } from "../state/types.js";
@@ -29,9 +30,12 @@ function defaultUnit(typeId: string, passiveId: string, playerIndex: 0 | 1, row:
     currentHp: def.hp,
     ap: 1,
     movement: def.movement,
+    baseMovement: def.movement,
     initiative: def.initiative,
     skillUsedThisTurn: false,
     invulnerable: false,
+    turnStartRow: row,
+    turnStartCol: col,
   };
 }
 
@@ -108,10 +112,5 @@ export function startTestBattle(
   });
 
   const initialState = createTestState();
-  return applyAction(initialState, {
-    type: "startBattle",
-    p1Team,
-    p2Team,
-    map: map ?? createTestMap(),
-  });
+  return applyAction(initialState, startBattle(p1Team, p2Team, map ?? createTestMap()));
 }
