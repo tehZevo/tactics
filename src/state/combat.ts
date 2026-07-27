@@ -19,6 +19,7 @@ import {
   isOwnUnit,
   checkVictory,
   addLog,
+  findUnitRef,
 } from "./helpers.js";
 import { getTurnUnit } from "./turns.js";
 
@@ -109,7 +110,27 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
       turnUnit.invulnerable = true;
       addLog(state, `${getUnitDisplayName(turnUnit)} phases out of reality, becoming invulnerable until their next turn!`, "info");
     }
-    addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}!`, "info");
+    if (skill.reorderTarget) {
+      const casterRef = findUnitRef(turnUnit, state.p1Team.placed, state.p2Team.placed);
+      const targetRef = findUnitRef(target, state.p1Team.placed, state.p2Team.placed);
+      if (casterRef && targetRef) {
+        const casterIndex = state.turnOrder.findIndex(
+          e => e.playerIndex === casterRef.playerIndex && e.unitIndex === casterRef.unitIndex
+        );
+        const targetIndex = state.turnOrder.findIndex(
+          e => e.playerIndex === targetRef.playerIndex && e.unitIndex === targetRef.unitIndex
+        );
+        if (casterIndex !== -1 && targetIndex !== -1 && casterIndex !== targetIndex) {
+          const [targetEntry] = state.turnOrder.splice(targetIndex, 1);
+          state.turnOrder.splice(casterIndex + 1, 0, targetEntry);
+          addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}! ${getUnitDisplayName(target)} will act right after you!`, "info");
+        } else {
+          addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}, but the target is already next in line!`, "info");
+        }
+      }
+    } else {
+      addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}!`, "info");
+    }
 
   } else if (skill.type === "movement") {
     turnUnit.ap -= skill.cost;

@@ -151,7 +151,7 @@ export function UnitPanel() {
 }
 
 export function BattleLog() {
-  const recent = state.log.slice(-15).reverse();
+    const recent = state.log.slice(0, 15).reverse();
   return (
     <div className="battle-log">
       <div className="bl-title">Battle Log</div>

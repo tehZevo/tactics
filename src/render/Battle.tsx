@@ -80,6 +80,10 @@ export function Battle() {
 
   return (
     <div className="screen active battle-screen">
+      <div className="battle-board-fullscreen">
+        <IsoBoard />
+      </div>
+
       <TurnOrderStrip />
 
       <div className="battle-header">
@@ -91,34 +95,43 @@ export function Battle() {
         )}
       </div>
 
-      <div className="battle-body">
-        <div className="battle-board-area">
-          <IsoBoard />
-          {isHumanTurn && (
-            <div className="action-bar">
-              {skillButtons.map((sb) => (
-                <button
-                  key={sb.id}
-                  className={`btn btn-sm ${sb.canUse ? "" : "disabled"}`}
-                  disabled={!sb.canUse}
-                  onClick={() => handleSkill(sb.id)}
-                >
-                  {sb.label} ({sb.cost} AP)
-                </button>
-              ))}
-              <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
-                End Turn
-              </button>
-            </div>
-          )}
-          {!isHumanTurn && (
-            <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
-              End Turn
+      <UnitPanel />
+
+      {isHumanTurn && (
+        <div className="action-bar">
+          {state.actionMode === "selectTarget" ? (
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                state.actionMode = "idle";
+                state.selectedAction = null;
+                notifySubscribers();
+              }}
+            >
+              Cancel
             </button>
+          ) : (
+            skillButtons.map((sb) => (
+              <button
+                key={sb.id}
+                className={`btn btn-sm ${sb.canUse ? "" : "disabled"}`}
+                disabled={!sb.canUse}
+                onClick={() => handleSkill(sb.id)}
+              >
+                {sb.label} ({sb.cost} AP)
+              </button>
+            ))
           )}
+          <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
+            End Turn
+          </button>
         </div>
-        <UnitPanel />
-      </div>
+      )}
+      {!isHumanTurn && (
+        <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
+          End Turn
+        </button>
+      )}
 
       <BattleLog />
     </div>

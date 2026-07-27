@@ -172,6 +172,10 @@ function UnitPreview({
         <h4>Skills</h4>
         {typeDef.skills.map((skillId) => {
           const skill = SKILL_DEFS[skillId];
+          if (!skill) {
+            console.warn(`Unknown skill "${skillId}" for unit type "${unitTypeId}"`);
+            return null;
+          }
           return (
             <div key={skillId} className="skill-item">
               <div className="skill-name">{skill.name}</div>
@@ -338,77 +342,47 @@ export function TeamSelect() {
 
   return (
     <div className="screen active team-select">
+      <div className="battle-board-fullscreen">
+        <IsoBoard />
+      </div>
+
       <div className="phase-label">
         {state.deployTurn === 0 || isVsAI
           ? "Place your units on the map — 6 units required"
           : "Player 2: Place your units on the map — 6 units required"}
       </div>
-      <TeamSelectLayout
-        unitTypeId={unitTypeId}
-        previewPassiveId={previewPassiveId}
-        isCurrentPlayer={isCurrentPlayer}
-        editingIdx={editingIdx}
-        placed={team.placed}
-        onSelectPlaced={handleSelectPlacedUnit}
-        onUnitSelect={handleSelectUnitType}
-        onPassiveSelect={handleSelectPassive}
-        onPresetSelect={handleSelectPreset}
-        onDeleteUnit={handleDeletePlaced}
-      />
-      <button className="btn btn-primary confirm-area" onClick={() => confirmTeam()}>
-        {isVsAI
-          ? (team.placed.length >= 6 ? "Start Battle" : `Place Units (${team.placed.length}/6)`)
-          : (state.deployTurn === 0 ? "Confirm Team" : "Start Battle")}
-      </button>
-    </div>
-  );
-}
 
-interface LayoutProps {
-  unitTypeId: string | null;
-  previewPassiveId: string | null;
-  isCurrentPlayer: boolean;
-  editingIdx: number | null;
-  placed: { typeId: string; passiveId: string }[];
-  onSelectPlaced: (index: number) => void;
-  onUnitSelect: (typeId: string) => void;
-  onPassiveSelect: (passiveId: string) => void;
-  onPresetSelect: (index: number) => void;
-  onDeleteUnit: (index: number) => void;
-}
-
-function TeamSelectLayout({
-  unitTypeId,
-  previewPassiveId,
-  isCurrentPlayer,
-  editingIdx,
-  placed,
-  onSelectPlaced,
-  onUnitSelect,
-  onPassiveSelect,
-  onPresetSelect,
-  onDeleteUnit,
-}: LayoutProps) {
-  return (
-    <div className="teams-container">
-      <div className="teams-main">
+      <div className="team-select-side-panel">
         <SidePanel
-          placed={placed}
+          placed={team.placed}
           editingIdx={editingIdx}
-          onSelectPlaced={onSelectPlaced}
-          onUnitSelect={onUnitSelect}
-          onPassiveSelect={onPassiveSelect}
-          onPresetSelect={onPresetSelect}
+          onSelectPlaced={handleSelectPlacedUnit}
+          onUnitSelect={handleSelectUnitType}
+          onPassiveSelect={handleSelectPassive}
+          onPresetSelect={handleSelectPreset}
         />
-        <MapSection />
+      </div>
+
+      <div className="team-select-preview-panel">
         <PreviewPanel
           unitTypeId={unitTypeId}
           passiveId={previewPassiveId}
           isCurrentPlayer={isCurrentPlayer}
           editingIdx={editingIdx}
-          onDeleteUnit={onDeleteUnit}
+          onDeleteUnit={handleDeletePlaced}
         />
       </div>
+
+      <div className="map-instructions">
+        Click a tile in your deployment zone to select it, then choose a unit and passive to place it.
+        Click a placed unit to edit or delete it.
+      </div>
+
+      <button className="btn btn-primary confirm-area" onClick={() => confirmTeam()}>
+        {isVsAI
+          ? (team.placed.length >= 6 ? "Start Battle" : `Place Units (${team.placed.length}/6)`)
+          : (state.deployTurn === 0 ? "Confirm Team" : "Start Battle")}
+      </button>
     </div>
   );
 }
@@ -452,18 +426,6 @@ function SidePanel({
             onSelect={onPassiveSelect}
           />
         )}
-      </div>
-    </div>
-  );
-}
-
-function MapSection() {
-  return (
-    <div className="map-section">
-      <IsoBoard />
-      <div className="map-instructions">
-        Click a tile in your deployment zone to select it, then choose a unit and passive to place it.
-        Click a placed unit to edit or delete it.
       </div>
     </div>
   );

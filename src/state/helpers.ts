@@ -120,6 +120,10 @@ export function getTargetsInRange(
       if (skill.swapTarget && dist > 0) {
         targets.push(target);
       }
+
+      if (skill.reorderTarget && dist > 0) {
+        targets.push(target);
+      }
     }
   }
   return targets;

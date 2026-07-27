@@ -134,8 +134,34 @@ export const UNIT_TYPE_DEFS: Record<string, UnitTypeDef> = {
     baseDef: 0,
     movement: 4,
     initiative: 5,
-    skills: ["swap", "arcane_bash"],
+    skills: ["swap", "arcane_burst"],
     color: "#06b6d4",
+  },
+
+  marshal: {
+    name: "Marshal",
+    icon: "M",
+    description: "Tactical commander who manipulates the flow of battle. High AP cost abilities demand careful timing.",
+    hp: 6,
+    baseAtk: 1,
+    baseDef: 1,
+    movement: 3,
+    initiative: 4,
+    skills: ["borrowed_time", "commanding_strike"],
+    color: "#1e40af",
+  },
+
+  monk: {
+    name: "Monk",
+    icon: "Mo",
+    description: "Martial artist with devastating close-range techniques and superior speed.",
+    hp: 5,
+    baseAtk: 0,
+    baseDef: 0,
+    movement: 5,
+    initiative: 6,
+    skills: ["iron_palm", "crimson_hurricane"],
+    color: "#ea580c",
   },
 };
 

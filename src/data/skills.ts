@@ -28,6 +28,7 @@ export interface SkillDef {
   selfDamage?: number; // HP the user loses when using this skill
   leapBonus?: number; // extra movement range granted by this skill
   swapTarget?: boolean; // if true, swaps user with target
+  reorderTarget?: boolean; // if true, reorders turn order so target acts immediately after user
   apply?: SkillApplyFn;
 }
 
@@ -245,6 +246,47 @@ export const SKILL_DEFS: Record<string, SkillDef> = {
     range: 1,
     cooldown: 1,
     description: "Deal 4 damage to the target and 2 damage to adjacent enemies.",
+    type: "attack",
+    damage: 2,
+    aoe: 1,
+  },
+
+  // Marshal
+  borrowed_time: {
+    name: "Borrowed Time",
+    cost: 5,
+    range: 3,
+    cooldown: 3,
+    description: "Manipulate the flow of battle. The target acts immediately after you this round.",
+    type: "buff",
+    reorderTarget: true,
+  },
+  commanding_strike: {
+    name: "Commanding Strike",
+    cost: 1,
+    range: 1,
+    cooldown: 0,
+    description: "A disciplined strike dealing 3 damage.",
+    type: "attack",
+    damage: 3,
+  },
+
+  // Monk
+  iron_palm: {
+    name: "Iron Palm",
+    cost: 1,
+    range: 1,
+    cooldown: 0,
+    description: "A focused strike of hardened fists dealing 5 damage.",
+    type: "attack",
+    damage: 5,
+  },
+  crimson_hurricane: {
+    name: "Crimson Hurricane",
+    cost: 3,
+    range: 1,
+    cooldown: 2,
+    description: "A whirlwind of punches and kicks striking all adjacent enemies for 2 damage each.",
     type: "attack",
     damage: 2,
     aoe: 1,

@@ -216,3 +216,35 @@ export const leapEffect: SkillApplyFn = (state, caster, _target, _skillId, locat
 
   clearActionMode(state);
 };
+
+export const reorderTurn: SkillApplyFn = (state, caster, target, skillId) => {
+  if (!target) return;
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+  if (!validateRange(caster, target, skill)) return;
+
+  const casterRef = findUnitRef(caster, state.p1Team.placed, state.p2Team.placed);
+  const targetRef = findUnitRef(target, state.p1Team.placed, state.p2Team.placed);
+  if (!casterRef || !targetRef) return;
+
+  const casterIndex = state.turnOrder.findIndex(
+    e => e.playerIndex === casterRef!.playerIndex && e.unitIndex === casterRef!.unitIndex
+  );
+  const targetIndex = state.turnOrder.findIndex(
+    e => e.playerIndex === targetRef!.playerIndex && e.unitIndex === targetRef!.unitIndex
+  );
+  if (casterIndex === -1 || targetIndex === -1) return;
+  if (casterIndex === targetIndex) {
+    addLog(state, `${getUnitDisplayName(caster)} uses ${skill.name}, but the target is already next in line!`, "info");
+    clearActionMode(state);
+    return;
+  }
+
+  const [targetEntry] = state.turnOrder.splice(targetIndex, 1);
+  const insertAt = casterIndex + 1;
+  state.turnOrder.splice(insertAt, 0, targetEntry);
+
+  addLog(state, `${getUnitDisplayName(caster)} uses ${skill.name}! ${getUnitDisplayName(target)} will act right after you!`, "info");
+
+  clearActionMode(state);
+};

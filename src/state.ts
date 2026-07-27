@@ -386,7 +386,13 @@ export function placeUnit(row: number, col: number): void {
       return;
     }
     if (action.type === "attack" || action.type === "skill") {
-      executeAttack(state, action.skillId, unit!);
+      if (!unit) {
+        state.actionMode = "idle";
+        state.selectedAction = null;
+        notifySubscribers();
+        return;
+      }
+      executeAttack(state, action.skillId, unit);
       notifySubscribers();
       return;
     }

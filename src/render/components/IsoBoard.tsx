@@ -125,8 +125,27 @@ export function IsoBoard() {
     return () => el.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && state.actionMode === "selectTarget") {
+        state.actionMode = "idle";
+        state.selectedAction = null;
+        notifySubscribers();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      if (e.button === 2 && state.actionMode === "selectTarget") {
+        state.actionMode = "idle";
+        state.selectedAction = null;
+        notifySubscribers();
+      }
+      return;
+    }
     dragRef.current = { startX: e.clientX, startY: e.clientY, startOffX: offset.x, startOffY: offset.y };
   }, [offset]);
 
@@ -303,11 +322,12 @@ export function IsoBoard() {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <div
         className="iso-board"
         style={{
-          position: 'relative',
+          position: 'absolute',
           width: `${totalWidth}px`,
           height: `${totalHeight}px`,
           transform: `translate(${offset.x}px, ${offset.y}px)`,

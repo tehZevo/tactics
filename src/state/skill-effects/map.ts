@@ -9,6 +9,7 @@ import {
   movementTeleport,
   apDrain,
   leapEffect,
+  reorderTurn,
 } from "./effects.js";
 
 const skillEffectMap: Record<string, SkillApplyFn> = {
@@ -43,6 +44,12 @@ const skillEffectMap: Record<string, SkillApplyFn> = {
   // Battlemage
   swap: movementSwap,
   arcane_burst: aoeAttack,
+  // Marshal
+  borrowed_time: reorderTurn,
+  commanding_strike: singleTargetAttack,
+  // Monk
+  iron_palm: singleTargetAttack,
+  crimson_hurricane: aoeAttack,
 };
 
 export function registerSkillEffects(): void {

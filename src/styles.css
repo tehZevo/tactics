@@ -104,30 +104,77 @@ body {
 
 /* ---- Team Select ---- */
 .team-select {
-  gap: 0.75rem;
-  padding: 1.5rem;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+.team-select .phase-label {
+  position: fixed;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  font-size: 0.95rem;
+  color: #c8ccd4;
+  background: #1a1d2e;
+  border: 1px solid #2d3348;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  white-space: nowrap;
+}
+.team-select .map-instructions {
+  position: fixed;
+  bottom: 3.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  text-align: center;
+  max-width: 500px;
+  background: #1a1d2e;
+  border: 1px solid #2d3348;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  line-height: 1.4;
+}
+.team-select .confirm-area {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+.team-select-side-panel {
+  position: fixed;
+  top: 3.5rem;
+  left: 0.5rem;
+  width: 260px;
+  z-index: 20;
+  background: #1a1d2e;
+  border: 1px solid #2d3348;
+  border-radius: 6px;
+  padding: 0.65rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 7.5rem);
+}
+.team-select-preview-panel {
+  position: fixed;
+  top: 3.5rem;
+  right: 0.5rem;
+  width: 260px;
+  z-index: 20;
+  background: #1a1d2e;
+  border: 1px solid #2d3348;
+  border-radius: 6px;
+  padding: 0.65rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 7.5rem);
 }
 .team-select h2 {
   font-size: 1.5rem;
   color: #e8eaf0;
-}
-.team-select .phase-label {
-  font-size: 0.95rem;
-  color: #6b7280;
-  margin-bottom: 0.25rem;
-}
-.teams-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  width: 100%;
-  max-width: 1400px;
-}
-.teams-main {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  width: 100%;
 }
 .team-panel {
   background: #1a1d2e;
@@ -887,16 +934,26 @@ body {
 
 /* ---- Battle ---- */
 .battle-screen {
-  flex-direction: column;
-  padding: 0.5rem;
-  gap: 0.5rem;
+  position: relative;
+  width: 100vw;
   height: 100vh;
-  max-height: 100vh;
   overflow: hidden;
 }
 
-/* Turn order strip */
+/* Board fills the entire screen behind everything */
+.battle-board-fullscreen {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* Floating panels */
 .turn-order-strip {
+  position: fixed;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
   display: flex;
   gap: 0.35rem;
   padding: 0.4rem 0.5rem;
@@ -904,7 +961,6 @@ body {
   border: 1px solid #2d3348;
   border-radius: 6px;
   overflow-x: auto;
-  flex-shrink: 0;
 }
 .turn-order-entry {
   display: flex;
@@ -972,8 +1028,12 @@ body {
 
 /* Battle header */
 .battle-header {
+  position: fixed;
+  top: 3.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
   text-align: center;
-  flex-shrink: 0;
 }
 .bh-turn {
   font-size: 0.95rem;
@@ -987,34 +1047,21 @@ body {
   margin-top: 0.1rem;
 }
 
-/* Battle body: board + unit panel */
-.battle-body {
-  display: flex;
-  gap: 0.75rem;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-.battle-board-area {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-}
-.battle-board-area .board-wrapper {
-  max-width: 100%;
-}
-.end-turn-btn {
-  flex-shrink: 0;
-}
+/* Action bar */
 .action-bar {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
   justify-content: center;
+  padding: 0.4rem 0.6rem;
+  background: #1a1d2e;
+  border: 1px solid #2d3348;
+  border-radius: 6px;
 }
 .action-bar .btn {
   flex-shrink: 0;
@@ -1026,9 +1073,11 @@ body {
 
 /* Unit panel (right side) */
 .unit-panel {
+  position: fixed;
+  top: 3.5rem;
+  right: 0.5rem;
   width: 240px;
-  min-width: 200px;
-  flex-shrink: 0;
+  z-index: 20;
   background: #1a1d2e;
   border: 1px solid #2d3348;
   border-radius: 6px;
@@ -1038,7 +1087,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 100%;
+  max-height: calc(100vh - 4.5rem);
 }
 .unit-panel.p1 { border-top: 2px solid #60a5fa; }
 .unit-panel.p2 { border-top: 2px solid #f87171; }
@@ -1181,11 +1230,14 @@ body {
 
 /* Battle log */
 .battle-log {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  z-index: 20;
   background: #1a1d2e;
   border: 1px solid #2d3348;
   border-radius: 6px;
   padding: 0.4rem 0.5rem;
-  flex-shrink: 0;
   max-height: 120px;
   overflow: hidden;
 }
@@ -1257,14 +1309,11 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
+  min-height: 400px;
   overflow: hidden;
-  flex-shrink: 0;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   cursor: grab;
 }
 .iso-board-wrapper:active {
@@ -1383,6 +1432,7 @@ body {
   cursor: pointer;
   transition: transform 0.12s, box-shadow 0.12s;
   border: 2px solid transparent;
+  pointer-events: auto;
 }
 .iso-tile-unit.p1 {
   background: #1e40af;
@@ -1559,30 +1609,6 @@ body {
   background: #fbbf24;
 }
 
-/* Battle log */
-.battle-log {
-  background: #1a1d2e;
-  border: 1px solid #2d3348;
-  border-radius: 6px;
-  padding: 0.5rem;
-  height: 140px;
-  overflow-y: auto;
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-.battle-log .log-entry {
-  color: #6b7280;
-}
-.battle-log .log-entry.damage {
-  color: #f87171;
-}
-.battle-log .log-entry.heal {
-  color: #4ade80;
-}
-.battle-log .log-entry.info {
-  color: #60a5fa;
-}
-
 /* End turn button */
 .end-turn-btn {
   margin-top: 0.3rem;
@@ -1649,15 +1675,19 @@ body {
     font-size: 1.05rem;
     min-height: 48px;
   }
-  .team-select {
-    padding: 0.75rem;
+  .team-select-side-panel {
+    position: fixed;
+    top: 3.5rem;
+    left: 0.25rem;
+    width: 200px;
+    max-height: calc(100vh - 7.5rem);
   }
-  .teams-main {
-    flex-direction: column;
-  }
-  .unit-preview-panel {
-    width: 100%;
-    min-width: 0;
+  .team-select-preview-panel {
+    position: fixed;
+    top: 3.5rem;
+    right: 0.25rem;
+    width: 200px;
+    max-height: calc(100vh - 7.5rem);
   }
   .team-select-col {
     min-width: 0;
@@ -1684,13 +1714,9 @@ body {
     height: auto;
     max-height: none;
   }
-  .battle-body {
-    flex-direction: column;
-  }
   .unit-panel {
-    width: 100%;
-    min-width: 0;
-    max-height: 200px;
+    width: 200px;
+    max-height: calc(100vh - 4.5rem);
   }
   .battle-log {
     max-height: 100px;
@@ -1742,14 +1768,18 @@ body {
     padding: 0.9rem 1rem;
     font-size: 1rem;
   }
-  .team-select {
+  .team-select-side-panel {
+    width: 160px;
     padding: 0.4rem;
+    font-size: 0.7rem;
+  }
+  .team-select-preview-panel {
+    width: 160px;
+    padding: 0.4rem;
+    font-size: 0.7rem;
   }
   .team-select h2 {
     font-size: 1.2rem;
-  }
-  .phase-label {
-    font-size: 0.8rem;
   }
   .unit-card {
     padding: 0.5rem 0.4rem;
