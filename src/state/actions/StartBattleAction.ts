@@ -1,4 +1,5 @@
-import { GameState, PlacedUnit, Team, MapLayout } from "../types.js";
+import { GameState, PlacedUnit, Team } from "../types.js";
+import type { MapLayout } from "../../data/maps.js";
 import { Action } from "./Action.js";
 import { getUnitByRef } from "../helpers.js";
 

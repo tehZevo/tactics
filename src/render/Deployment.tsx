@@ -118,10 +118,12 @@ export function Deployment() {
       currentHp: UNIT_TYPE_DEFS[typeId].hp,
       ap: 0,
       movement: UNIT_TYPE_DEFS[typeId].movement,
+      baseMovement: UNIT_TYPE_DEFS[typeId].movement,
       initiative: UNIT_TYPE_DEFS[typeId].initiative,
-      poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      turnStartRow: row,
+      turnStartCol: col,
     };
 
     currentTeam.placed.push(placedUnit);
