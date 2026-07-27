@@ -61,6 +61,9 @@ export function advanceTurn(state: GameState): GameState {
       let apGain = 1;
       if (unit.passiveId === "desperate") apGain += 1;
       unit.ap = Math.min(unit.ap + apGain, MAX_AP);
+      state.selectedUnit = { playerIndex: next.playerIndex, unitIndex: next.unitIndex };
+      state.actionMode = "idle";
+      state.selectedAction = null;
       addLog(state, `${getUnitDisplayName(unit)}'s turn.`, "info");
       return state;
     }

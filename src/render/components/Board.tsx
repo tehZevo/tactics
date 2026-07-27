@@ -151,8 +151,8 @@ export function Board() {
       }
     }
 
-    // If clicking on the current turn unit, select it
-    if (unit && turnUnit && unit.currentHp > 0 && isOwnUnit(turnUnit, unit)) {
+    // If clicking on the current turn unit, select it (for action menu)
+    if (unit && turnUnit && unit === turnUnit && unit.currentHp > 0) {
       state.selectedUnit = findUnitRef(unit, state.p1Team.placed, state.p2Team.placed);
       notifySubscribers();
       return;
@@ -195,7 +195,7 @@ export function Board() {
           if (turnUnit) {
             const selTeam = state.selectedUnit.playerIndex === 0 ? state.p1Team.placed : state.p2Team.placed;
             const selUnit = selTeam[state.selectedUnit.unitIndex];
-            if (selUnit?.currentHp > 0 && isOwnUnit(turnUnit, selUnit)) {
+            if (selUnit === turnUnit && selUnit.currentHp > 0) {
               const reachable = getReachableTiles(state, selUnit);
               if (reachable.has(`${r},${c}`) && !state.board[r][c]) tileClasses.push("move-highlight");
             }

@@ -1,7 +1,7 @@
 import { GameState } from "../types.js";
 import { Action } from "./Action.js";
 import { getUnitByRef } from "../helpers.js";
-import { executeSkillEffect } from "../skill-effects.js";
+import { executeSkillEffect } from "../skill-effects/index.js";
 import { advanceTurn } from "../turns.js";
 
 export class UseSkillAction extends Action {
