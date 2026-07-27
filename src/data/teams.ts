@@ -105,6 +105,7 @@ export function getRandomTeam(): Team {
         ...unit,
         row: pos.row,
         col: pos.col,
+        playerIndex: 1 as const,
         currentHp: stats.hp,
         ap: 0,
         movement: stats.movement,

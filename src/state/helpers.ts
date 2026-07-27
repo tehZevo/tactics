@@ -232,3 +232,22 @@ export function getUnitByRef(ref: { playerIndex: 0 | 1; unitIndex: number }, p1T
   if (ref.unitIndex >= team.length) return null;
   return team[ref.unitIndex];
 }
+
+export function checkVictory(state: GameState): void {
+  const p1Alive = state.p1Team.placed.some((u) => u.currentHp > 0);
+  const p2Alive = state.p2Team.placed.some((u) => u.currentHp > 0);
+
+  if (!p1Alive && !p2Alive) {
+    state.screen = "victory";
+    state.winner = -1;
+    addLog(state, "Draw! Both sides are annihilated.", "info");
+  } else if (!p1Alive) {
+    state.screen = "victory";
+    state.winner = 1;
+    addLog(state, "Player 2 wins!", "info");
+  } else if (!p2Alive) {
+    state.screen = "victory";
+    state.winner = 0;
+    addLog(state, "Player 1 wins!", "info");
+  }
+}

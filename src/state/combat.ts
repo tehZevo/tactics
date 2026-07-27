@@ -17,6 +17,7 @@ import {
   getUnitDisplayName,
   getPlayerIndex,
   isOwnUnit,
+  checkVictory,
   addLog,
 } from "./helpers.js";
 import { getTurnUnit } from "./turns.js";
@@ -197,21 +198,4 @@ export function executeAoeAttack(state: GameState, attacker: PlacedUnit, skill: 
   addLog(state, `${getUnitDisplayName(attacker)} uses ${skill.name}! ${hitCount} enemies hit for ${totalDamage} total damage.`, "damage");
 }
 
-function checkVictory(state: GameState): void {
-  const p1Alive = state.p1Team.placed.some((u) => u.currentHp > 0);
-  const p2Alive = state.p2Team.placed.some((u) => u.currentHp > 0);
 
-  if (!p1Alive && !p2Alive) {
-    state.screen = "victory";
-    state.winner = -1;
-    addLog(state, "Draw! Both sides are annihilated.", "info");
-  } else if (!p1Alive) {
-    state.screen = "victory";
-    state.winner = 1;
-    addLog(state, "Player 2 wins!", "info");
-  } else if (!p2Alive) {
-    state.screen = "victory";
-    state.winner = 0;
-    addLog(state, "Player 1 wins!", "info");
-  }
-}

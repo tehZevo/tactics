@@ -1,4 +1,3 @@
-import { SKILL_DEFS } from "../../data/index.js";
 import type { SkillDef } from "../../data/skills.js";
 import type { GameState, PlacedUnit } from "../types.js";
 import {
@@ -6,6 +5,7 @@ import {
   getUnitDisplayName,
   addLog,
 } from "../helpers.js";
+export { checkVictory } from "../helpers.js";
 
 export function prepareSkillUse(state: GameState, caster: PlacedUnit, skill: SkillDef): boolean {
   if (caster.ap < skill.cost) return false;
@@ -20,25 +20,6 @@ export function prepareSkillUse(state: GameState, caster: PlacedUnit, skill: Ski
 export function clearActionMode(state: GameState): void {
   state.actionMode = "idle";
   state.selectedAction = null;
-}
-
-export function checkVictory(state: GameState): void {
-  const p1Alive = state.p1Team.placed.some((u) => u.currentHp > 0);
-  const p2Alive = state.p2Team.placed.some((u) => u.currentHp > 0);
-
-  if (!p1Alive && !p2Alive) {
-    state.screen = "victory";
-    state.winner = -1;
-    addLog(state, "Draw! Both sides are annihilated.", "info");
-  } else if (!p1Alive) {
-    state.screen = "victory";
-    state.winner = 1;
-    addLog(state, "Player 2 wins!", "info");
-  } else if (!p2Alive) {
-    state.screen = "victory";
-    state.winner = 0;
-    addLog(state, "Player 1 wins!", "info");
-  }
 }
 
 export function validateRange(caster: PlacedUnit, target: PlacedUnit, skill: SkillDef): boolean {

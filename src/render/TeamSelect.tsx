@@ -21,7 +21,7 @@ import {
   PASSIVE_IDS,
 } from "../data/index";
 import { SKILL_DEFS } from "../data/skills.js";
-import { PRESET_TEAMS } from "../data/teams.js";
+import { PRESET_TEAMS, getTeamPlacements } from "../data/teams.js";
 import { Board } from "./components/Board";
 
 function applyPassive(typeDef: any, passiveId: string) {
@@ -317,15 +317,16 @@ export function TeamSelect() {
     state.editingUnitIndex = null;
 
     const playerIndex = team === p1Team ? 0 : 1;
+    const side = playerIndex === 0 ? "p1" : "p2";
+    const placements = getTeamPlacements(side);
 
     // Place preset units
     preset.units.forEach((unit, index) => {
-      const row = Math.floor(index / 6);
-      const col = index % 6;
-      const placedUnit = createPlacedUnit(unit.typeId, unit.passiveId, row, col, playerIndex);
+      const pos = placements[index];
+      const placedUnit = createPlacedUnit(unit.typeId, unit.passiveId, pos.row, pos.col, playerIndex);
 
       team.placed.push(placedUnit);
-      state.board[row][col] = placedUnit;
+      state.board[pos.row][pos.col] = placedUnit;
     });
 
     setVersion(v => v + 1);

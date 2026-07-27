@@ -1,5 +1,5 @@
 // ============================================================
-//  STATE / TURNS — turn management (advanceTurn, getTurnUnit, checkVictory, startBattle)
+//  STATE / TURNS — turn management (advanceTurn, getTurnUnit, startBattle)
 // ============================================================
 import {
   BOARD_COLS,
@@ -11,6 +11,7 @@ import {
   getUnitByRef,
   getUnitMaxHp,
   getUnitDisplayName,
+  checkVictory,
   addLog,
 } from "./helpers.js";
 
@@ -71,25 +72,6 @@ export function advanceTurn(state: GameState): GameState {
     attempts++;
   }
   return state;
-}
-
-function checkVictory(state: GameState): void {
-  const p1Alive = state.p1Team.placed.some((u) => u.currentHp > 0);
-  const p2Alive = state.p2Team.placed.some((u) => u.currentHp > 0);
-
-  if (!p1Alive && !p2Alive) {
-    state.screen = "victory";
-    state.winner = -1;
-    addLog(state, "Draw! Both sides are annihilated.", "info");
-  } else if (!p1Alive) {
-    state.screen = "victory";
-    state.winner = 1;
-    addLog(state, "Player 2 wins!", "info");
-  } else if (!p2Alive) {
-    state.screen = "victory";
-    state.winner = 0;
-    addLog(state, "Player 1 wins!", "info");
-  }
 }
 
 export function startBattle(state: GameState): void {

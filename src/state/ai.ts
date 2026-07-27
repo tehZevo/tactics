@@ -17,7 +17,7 @@ import {
 import { executeAttack } from "./combat.js";
 import { executeMove } from "./moves.js";
 import { getTurnUnit, advanceTurn } from "./turns.js";
-import { notifySubscribers } from "../state.js";
+import { notifySubscribers, getIsVsAI } from "../state.js";
 
 export function aiTakeTurn(state: GameState): void {
   const turnUnit = getTurnUnit(state);
@@ -32,7 +32,7 @@ export function aiTakeTurn(state: GameState): void {
     notifySubscribers();
     // Chain to next AI unit if applicable
     const nextUnit = getTurnUnit(state);
-    if (nextUnit && (nextUnit.row >= 6)) {
+    if (nextUnit && getIsVsAI() && getPlayerIndex(nextUnit) === 1) {
       setTimeout(() => aiTakeTurn(state), 200);
     }
     return;
@@ -143,7 +143,7 @@ export function aiTakeTurn(state: GameState): void {
 
   // Chain to next AI unit if applicable
   const nextUnit = getTurnUnit(state);
-  if (nextUnit && (nextUnit.row >= 6)) {
+  if (nextUnit && getIsVsAI() && getPlayerIndex(nextUnit) === 1) {
     setTimeout(() => aiTakeTurn(state), 200);
   }
 }

@@ -478,6 +478,11 @@ export function startBattle(): void {
     addLog(state, `${getUnitDisplayName(firstUnit)} leads the charge.`, "info");
   }
   notifySubscribers();
+
+  // Trigger AI if first unit is AI-controlled
+  if (firstUnit && getIsVsAI() && getPlayerIndex(firstUnit) === 1) {
+    setTimeout(() => aiTakeTurn(state), 300);
+  }
 }
 
 export function restartGame(): void {
