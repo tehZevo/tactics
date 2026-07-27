@@ -13,7 +13,7 @@ import {
   getPlayerIndex,
 } from "../state";
 import { TurnOrderStrip, UnitPanel, BattleLog } from "./components/BattleComponents";
-import { Board } from "./components/Board";
+import { IsoBoard } from "./components/IsoBoard";
 import { useState, useEffect } from "react";
 import { UNIT_TYPE_DEFS, SKILL_DEFS } from "../data/index";
 
@@ -93,7 +93,7 @@ export function Battle() {
 
       <div className="battle-body">
         <div className="battle-board-area">
-          <Board />
+          <IsoBoard />
           {isHumanTurn && (
             <div className="action-bar">
               {skillButtons.map((sb) => (

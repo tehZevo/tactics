@@ -8,7 +8,7 @@ import {
   PASSIVE_DEFS,
   PASSIVE_IDS,
 } from "../data/index";
-import { Board } from "./components/Board";
+import { IsoBoard } from "./components/IsoBoard";
 
 function DeploymentRoster({
   selectedUnitType,
@@ -195,7 +195,7 @@ export function Deployment() {
             {isVsAI && deployTurn === 0 ? "Confirm & Start" : "Confirm & Next"}
           </button>
         </div>
-        <Board />
+        <IsoBoard />
       </div>
     </div>
   );

@@ -19,11 +19,13 @@ export function executeMove(state: GameState, row: number, col: number): void {
 
   const oldRow = turnUnit.row;
   const oldCol = turnUnit.col;
+  const dist = Math.abs(row - oldRow) + Math.abs(col - oldCol);
 
   state.board[oldRow][oldCol] = null;
   turnUnit.row = row;
   turnUnit.col = col;
   state.board[row][col] = turnUnit;
+  turnUnit.movement -= dist;
   turnUnit.leapBonus = 0;
 
   addLog(state, `${getUnitDisplayName(turnUnit)} moves to (${row},${col}).`);

@@ -1251,6 +1251,205 @@ body {
 .tile:hover {
   z-index: 2;
 }
+
+/* Isometric Board */
+.iso-board-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+}
+.iso-board-wrapper:active {
+  cursor: grabbing;
+}
+.iso-board {
+  margin: 0 auto;
+}
+.iso-tile {
+  position: absolute;
+  cursor: default;
+  transition: background 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  pointer-events: none;
+}
+.iso-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #1e2235;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  pointer-events: auto;
+  cursor: default;
+}
+.iso-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: 1px solid #4d5577;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  box-shadow: inset 0 0 6px 0 rgba(77, 85, 119, 0.6);
+  pointer-events: none;
+}
+.iso-tile:hover::before {
+  background: #252a3e;
+}
+.iso-tile.unwalkable::before {
+  background: #0a0c12;
+}
+.iso-tile.unwalkable::after {
+  border-color: #2d3348;
+  box-shadow: inset 0 0 6px 0 rgba(45, 51, 72, 0.6);
+}
+.iso-tile.deployment-zone::before {
+  background: #1a2332;
+}
+.iso-tile.move-highlight::before {
+  background: rgba(34, 197, 94, 0.25);
+  cursor: pointer;
+}
+.iso-tile.move-highlight::after {
+  border-color: rgba(34, 197, 94, 0.7);
+  box-shadow: inset 0 0 8px 0 rgba(34, 197, 94, 0.4);
+}
+.iso-tile.leap-highlight::before {
+  background: rgba(220, 38, 38, 0.25);
+  cursor: pointer;
+}
+.iso-tile.leap-highlight::after {
+  border-color: rgba(220, 38, 38, 0.7);
+  box-shadow: inset 0 0 8px 0 rgba(220, 38, 38, 0.4);
+}
+.iso-tile.attack-highlight::before {
+  background: rgba(239, 68, 68, 0.25);
+  cursor: crosshair;
+}
+.iso-tile.attack-highlight::after {
+  border-color: rgba(239, 68, 68, 0.7);
+  box-shadow: inset 0 0 8px 0 rgba(239, 68, 68, 0.4);
+}
+.iso-tile.skill-highlight::before {
+  background: rgba(139, 92, 246, 0.25);
+  cursor: crosshair;
+}
+.iso-tile.skill-highlight::after {
+  border-color: rgba(139, 92, 246, 0.7);
+  box-shadow: inset 0 0 8px 0 rgba(139, 92, 246, 0.4);
+}
+.iso-tile.aoe-highlight::before {
+  background: rgba(234, 179, 8, 0.25);
+  cursor: crosshair;
+}
+.iso-tile.aoe-highlight::after {
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: inset 0 0 8px 0 rgba(234, 179, 8, 0.4);
+}
+.iso-tile.selected::before {
+  background: rgba(96, 165, 250, 0.25);
+  cursor: pointer;
+}
+.iso-tile.selected::after {
+  border-color: #60a5fa;
+  box-shadow: inset 0 0 8px 0 rgba(96, 165, 250, 0.4);
+}
+
+/* Isometric Unit Container */
+.iso-unit-container {
+  position: absolute;
+  top: calc(45% - 16px);
+  left: 50%;
+  transform: translate(-50%, -80%);
+  z-index: 10;
+  pointer-events: none;
+}
+.iso-tile-unit {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  font-weight: 700;
+  color: #fff;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  border: 2px solid transparent;
+}
+.iso-tile-unit.p1 {
+  background: #1e40af;
+  border-color: #3b82f6;
+}
+.iso-tile-unit.p2 {
+  background: #991b1b;
+  border-color: #ef4444;
+}
+.iso-tile-unit.active-unit {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px #fbbf24, 0 0 12px rgba(251, 191, 36, 0.4);
+}
+.iso-tile-unit.dead-unit {
+  opacity: 0.25;
+  pointer-events: none;
+}
+.iso-tile-unit .tu-name {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+.iso-tile-unit .tu-hp-bar {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 3px;
+  background: #0f1117;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.iso-tile-unit .tu-hp-fill {
+  height: 100%;
+  background: #22c55e;
+  transition: width 0.2s;
+}
+.iso-tile-unit .tu-hp-fill.mid {
+  background: #eab308;
+}
+.iso-tile-unit .tu-hp-fill.low {
+  background: #ef4444;
+}
+.iso-tile-unit .tu-ap-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+}
+.iso-tile-unit .tu-ap-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #422006;
+}
+.iso-tile-unit .tu-ap-dot.filled {
+  background: #fbbf24;
+}
 .tile.unwalkable {
   background: #0a0c12;
 }

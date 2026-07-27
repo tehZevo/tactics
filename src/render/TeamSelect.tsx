@@ -22,7 +22,7 @@ import {
 } from "../data/index";
 import { SKILL_DEFS } from "../data/skills.js";
 import { PRESET_TEAMS, getTeamPlacements } from "../data/teams.js";
-import { Board } from "./components/Board";
+import { IsoBoard } from "./components/IsoBoard";
 
 function applyPassive(typeDef: any, passiveId: string) {
   if (!passiveId || !PASSIVE_DEFS[passiveId]) return typeDef;
@@ -460,7 +460,7 @@ function SidePanel({
 function MapSection() {
   return (
     <div className="map-section">
-      <Board />
+      <IsoBoard />
       <div className="map-instructions">
         Click a tile in your deployment zone to select it, then choose a unit and passive to place it.
         Click a placed unit to edit or delete it.

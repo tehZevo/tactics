@@ -26,6 +26,7 @@ import { SKILL_DEFS } from "./data/skills.js";
 import { executeMove, executeLeap } from "./state/moves.js";
 import { executeAttack, executeAoeAttack } from "./state/combat.js";
 import { getTurnUnit, advanceTurn } from "./state/turns.js";
+import { aiTakeTurn } from "./state/ai.js";
 import { getRandomMap, TEST_MAP } from "./data/maps.js";
 import { getRandomTeam, PRESET_TEAMS, getTeamPlacements } from "./data/teams.js";
 
