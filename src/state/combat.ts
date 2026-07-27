@@ -75,6 +75,7 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
       turnUnit.currentHp -= skill.selfDamage;
       if (turnUnit.currentHp <= 0) {
         turnUnit.currentHp = 0;
+        state.board[turnUnit.row][turnUnit.col] = null;
         addLog(state, `${getUnitDisplayName(turnUnit)} was consumed by their own attack!`, "damage");
       } else {
         addLog(state, `${getUnitDisplayName(turnUnit)} takes ${skill.selfDamage} self damage!`, "damage");
@@ -83,6 +84,7 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
 
     if (target.currentHp <= 0) {
       target.currentHp = 0;
+      state.board[target.row][target.col] = null;
       addLog(state, `${getUnitDisplayName(target)} is defeated!`, "damage");
       if (turnUnit.passiveId === "bloodthirsty") {
         const maxHp = getUnitMaxHp(turnUnit);
@@ -180,6 +182,7 @@ export function executeAoeAttack(state: GameState, attacker: PlacedUnit, skill: 
 
       if (target.currentHp <= 0) {
         target.currentHp = 0;
+        state.board[target.row][target.col] = null;
         addLog(state, `${getUnitDisplayName(target)} is defeated!`, "damage");
         if (attacker.passiveId === "bloodthirsty") {
           const maxHp = getUnitMaxHp(attacker);
