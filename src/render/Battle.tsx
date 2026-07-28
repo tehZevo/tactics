@@ -11,6 +11,7 @@ import {
   startTargeting,
   notifySubscribers,
   getPlayerIndex,
+  forfeit,
 } from "../state";
 import { TurnOrderStrip, UnitPanel, BattleLog } from "./components/BattleComponents";
 import { IsoBoard } from "./components/IsoBoard";
@@ -21,6 +22,7 @@ let _isVsAI = getIsVsAI();
 
 export function Battle() {
   const [version, setVersion] = useState(0);
+  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
 
   useEffect(() => {
     return subscribe(() => {
@@ -144,6 +146,25 @@ export function Battle() {
       )}
 
       <BattleLog />
+
+      {isHumanTurn && (
+        <button className="btn btn-sm forfeit-btn" onClick={() => setShowForfeitConfirm(true)}>
+          Forfeit
+        </button>
+      )}
+
+      {showForfeitConfirm && (
+        <div className="modal-overlay" onClick={() => setShowForfeitConfirm(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">Forfeit Match?</div>
+            <div className="modal-text">Are you sure you want to forfeit? You will lose this match.</div>
+            <div className="modal-actions">
+              <button className="btn btn-sm" onClick={() => setShowForfeitConfirm(false)}>Cancel</button>
+              <button className="btn btn-sm btn-danger" onClick={forfeit}>Forfeit</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

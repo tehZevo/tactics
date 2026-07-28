@@ -500,6 +500,16 @@ export function restartGame(): void {
   notifySubscribers();
 }
 
+export function forfeit(): void {
+  const turnUnit = getTurnUnit(state);
+  const forfeiter = turnUnit ? getPlayerIndex(turnUnit) : 0;
+  const winner = forfeiter === 0 ? 1 : 0;
+  state.screen = "victory";
+  state.winner = winner;
+  addLog(state, `Player ${forfeiter + 1} forfeits. Player ${winner + 1} wins!`, "info");
+  notifySubscribers();
+}
+
 // ---- React subscription system ----
 let subscribers: Set<() => void> = new Set();
 
