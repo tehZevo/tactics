@@ -100,16 +100,24 @@ export function Battle() {
       {isHumanTurn && (
         <div className="action-bar">
           {state.actionMode === "selectTarget" ? (
-            <button
-              className="btn btn-sm"
-              onClick={() => {
-                state.actionMode = "idle";
-                state.selectedAction = null;
-                notifySubscribers();
-              }}
-            >
-              Cancel
-            </button>
+            <>
+              <div className="action-bar-prompt">
+                Select target for{" "}
+                {state.selectedAction && "skillId" in state.selectedAction
+                  ? SKILL_DEFS[state.selectedAction.skillId]?.name ?? state.selectedAction.skillId
+                  : ""}
+              </div>
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  state.actionMode = "idle";
+                  state.selectedAction = null;
+                  notifySubscribers();
+                }}
+              >
+                Cancel
+              </button>
+            </>
           ) : (
             skillButtons.map((sb) => (
               <button
@@ -122,9 +130,11 @@ export function Battle() {
               </button>
             ))
           )}
-          <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
-            End Turn
-          </button>
+          {state.actionMode !== "selectTarget" && (
+            <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
+              End Turn
+            </button>
+          )}
         </div>
       )}
       {!isHumanTurn && (

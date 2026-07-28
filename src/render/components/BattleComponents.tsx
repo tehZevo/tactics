@@ -151,12 +151,12 @@ export function UnitPanel() {
 }
 
 export function BattleLog() {
-    const recent = state.log.slice(0, 15).reverse();
+    const reversed = [...state.log].reverse();
   return (
     <div className="battle-log">
       <div className="bl-title">Battle Log</div>
       <div className="bl-entries">
-        {recent.map((entry, i) => (
+        {reversed.map((entry, i) => (
           <div key={state.log.length - 1 - i} className={`log-entry ${entry.type}`}>{entry.text}</div>
         ))}
       </div>

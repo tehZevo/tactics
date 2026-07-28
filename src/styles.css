@@ -1238,8 +1238,8 @@ body {
   border: 1px solid #2d3348;
   border-radius: 6px;
   padding: 0.4rem 0.5rem;
-  max-height: 120px;
-  overflow: hidden;
+  width: 300px;
+  height: 150px;
 }
 .bl-title {
   font-size: 0.7rem;
@@ -1251,9 +1251,18 @@ body {
 }
 .bl-entries {
   overflow-y: auto;
-  max-height: 90px;
+  max-height: 115px;
   font-size: 0.72rem;
   line-height: 1.5;
+  scrollbar-width: thin;
+  scrollbar-color: #2d3348 transparent;
+}
+.bl-entries::-webkit-scrollbar {
+  width: 4px;
+}
+.bl-entries::-webkit-scrollbar-thumb {
+  background: #2d3348;
+  border-radius: 2px;
 }
 .battle-log .log-entry {
   color: #6b7280;
@@ -1319,6 +1328,28 @@ body {
 .iso-board-wrapper:active {
   cursor: grabbing;
 }
+.iso-rotate-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #2d3348;
+  background: #1a1d2e;
+  color: #c8ccd4;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  pointer-events: auto;
+}
+.iso-rotate-btn:hover {
+  background: #252a3e;
+}
 .iso-board {
   margin: 0 auto;
 }
@@ -1345,10 +1376,8 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: transparent;
-  border: 1px solid #4d5577;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  box-shadow: inset 0 0 6px 0 rgba(77, 85, 119, 0.6);
+  background: #4d5577;
+  clip-path: polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%);
   pointer-events: none;
 }
 .iso-tile:hover::before {
@@ -1359,50 +1388,39 @@ body {
 }
 .iso-tile.unwalkable::after {
   border-color: #2d3348;
-  box-shadow: inset 0 0 6px 0 rgba(45, 51, 72, 0.6);
 }
 .iso-tile.deployment-zone::before {
   background: #1a2332;
 }
 .iso-tile.move-highlight::before {
-  background: rgba(34, 197, 94, 0.25);
   cursor: pointer;
 }
 .iso-tile.move-highlight::after {
-  border-color: rgba(34, 197, 94, 0.7);
-  box-shadow: inset 0 0 8px 0 rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.25);
 }
 .iso-tile.leap-highlight::before {
-  background: rgba(220, 38, 38, 0.25);
   cursor: pointer;
 }
 .iso-tile.leap-highlight::after {
-  border-color: rgba(220, 38, 38, 0.7);
-  box-shadow: inset 0 0 8px 0 rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.25);
 }
 .iso-tile.attack-highlight::before {
-  background: rgba(239, 68, 68, 0.25);
   cursor: crosshair;
 }
 .iso-tile.attack-highlight::after {
-  border-color: rgba(239, 68, 68, 0.7);
-  box-shadow: inset 0 0 8px 0 rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.25);
 }
 .iso-tile.skill-highlight::before {
-  background: rgba(139, 92, 246, 0.25);
   cursor: crosshair;
 }
 .iso-tile.skill-highlight::after {
-  border-color: rgba(139, 92, 246, 0.7);
-  box-shadow: inset 0 0 8px 0 rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.25);
 }
 .iso-tile.aoe-highlight::before {
-  background: rgba(234, 179, 8, 0.25);
   cursor: crosshair;
 }
 .iso-tile.aoe-highlight::after {
-  border-color: rgba(234, 179, 8, 0.7);
-  box-shadow: inset 0 0 8px 0 rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.25);
 }
 .iso-tile.selected::before {
   background: rgba(96, 165, 250, 0.25);
@@ -1416,7 +1434,7 @@ body {
 /* Isometric Unit Container */
 .iso-unit-container {
   position: absolute;
-  top: calc(45% - 16px);
+  top: calc(45% - 8px);
   left: 50%;
   transform: translate(-50%, -80%);
   z-index: 10;
@@ -1450,6 +1468,19 @@ body {
   opacity: 0.25;
   pointer-events: none;
 }
+
+.iso-tile-unit .tu-shadow {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 16px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45) 40%, transparent 80%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
 .iso-tile-unit .tu-name {
   position: absolute;
   top: 0;

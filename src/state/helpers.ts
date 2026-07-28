@@ -58,7 +58,7 @@ export function getReachableTiles(state: GameState, unit: PlacedUnit): Set<strin
       // Before skill use, limit to movement radius from turn start position
       if (!unit.skillUsedThisTurn) {
         const distFromStart = Math.abs(nr - unit.turnStartRow) + Math.abs(nc - unit.turnStartCol);
-        if (distFromStart > unit.movement) continue;
+        if (distFromStart > unit.baseMovement) continue;
       }
       const occupant = state.board[nr][nc];
       if (occupant && isOwnUnit(unit, occupant)) {

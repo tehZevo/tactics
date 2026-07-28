@@ -8,14 +8,15 @@ export interface PresetTeam {
   units: { typeId: string; passiveId: string }[];
 }
 
-// 6 units placed in a 2x3 block, centered vertically (rows 4-5)
+// 6 units: 4 in the front row, 2 in the back row, centered in the back-2-rows × middle-6-cols deployment zone
+// P1 deploys at bottom (rows 10-11), P2 at top (rows 0-1)
 const P1_PLACEMENT = [
-  { row: 4, col: 0 }, { row: 4, col: 1 }, { row: 4, col: 2 },
-  { row: 5, col: 0 }, { row: 5, col: 1 }, { row: 5, col: 2 },
+  { row: 10, col: 4 }, { row: 10, col: 5 }, { row: 10, col: 6 }, { row: 10, col: 7 },
+  { row: 11, col: 5 }, { row: 11, col: 6 },
 ];
 const P2_PLACEMENT = [
-  { row: 4, col: 9 }, { row: 4, col: 10 }, { row: 4, col: 11 },
-  { row: 5, col: 9 }, { row: 5, col: 10 }, { row: 5, col: 11 },
+  { row: 1, col: 4 }, { row: 1, col: 5 }, { row: 1, col: 6 }, { row: 1, col: 7 },
+  { row: 0, col: 5 }, { row: 0, col: 6 },
 ];
 
 export const PRESET_TEAMS: PresetTeam[] = [

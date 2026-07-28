@@ -34,6 +34,15 @@ function isoCoords(row: number, col: number, tileWidth: number, tileHeight: numb
   return { x, y };
 }
 
+function rotateCoords(r: number, c: number, rotation: number, rows: number, cols: number): [number, number] {
+  switch (rotation) {
+    case 90: return [c, rows - 1 - r];
+    case 180: return [rows - 1 - r, cols - 1 - c];
+    case 270: return [cols - 1 - c, r];
+    default: return [r, c];
+  }
+}
+
 function TileUnit({
   unit,
   metrics,
@@ -71,6 +80,7 @@ function TileUnit({
         fontSize: `${tuFontSize}px`,
       }}
     >
+      <div className="tu-shadow" />
       <div className="tu-name">{td.icon}</div>
       {unit.invulnerable && <div className="tu-invulnerable">?</div>}
       <div
@@ -98,12 +108,21 @@ function TileUnit({
 export function IsoBoard() {
   const map = state.map;
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [scale, setScale] = useState(1);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [rotation, setRotation] = useState(0);
+
+  const camRef = useRef({
+    offsetX: 0, offsetY: 0,
+    targetOffsetX: 0, targetOffsetY: 0,
+    scale: 1, targetScale: 1,
+    initialized: false,
+  });
   const dragRef = useRef<{ startX: number; startY: number; startOffX: number; startOffY: number } | null>(null);
 
-  const tileWidth = Math.round(BASE_TILE_WIDTH * scale);
-  const tileHeight = Math.round(BASE_TILE_HEIGHT * scale);
+  const cam = camRef.current;
+
+  const tileWidth = BASE_TILE_WIDTH;
+  const tileHeight = BASE_TILE_HEIGHT;
   const unitSize = Math.max(Math.floor(tileWidth * 0.5), 18);
   const hpBarWidth = Math.max(Math.floor(unitSize * 0.8), 14);
   const apDotSize = Math.max(Math.floor(unitSize * 0.1), 3);
@@ -112,10 +131,62 @@ export function IsoBoard() {
   const tuHpBarGap = Math.max(Math.floor(unitSize * 0.04), 1);
   const metrics = { unitSize, hpBarWidth, apDotSize, tuFontSize, tuHpBarHeight, tuHpBarGap };
 
+  const totalWidth = (BOARD_COLS + BOARD_ROWS) * tileWidth / 2 + tileWidth;
+  const totalHeight = (BOARD_COLS + BOARD_ROWS) * tileHeight / 2 + tileHeight;
+
+  useEffect(() => {
+    if (cam.initialized) return;
+    const el = wrapperRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    cam.offsetX = cam.targetOffsetX = (rect.width - totalWidth) / 2;
+    cam.offsetY = cam.targetOffsetY = (rect.height - totalHeight) / 2;
+    cam.initialized = true;
+  }, []);
+
+  useEffect(() => {
+    let raf: number;
+    const loop = () => {
+      const c = camRef.current;
+      const ds = c.targetScale - c.scale;
+      const dx = c.targetOffsetX - c.offsetX;
+      const dy = c.targetOffsetY - c.offsetY;
+      const needsUpdate = Math.abs(ds) > 0.0005 || Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1;
+      if (needsUpdate) {
+        c.scale += ds * 0.2;
+        c.offsetX += dx * 0.2;
+        c.offsetY += dy * 0.2;
+      } else {
+        c.scale = c.targetScale;
+        c.offsetX = c.targetOffsetX;
+        c.offsetY = c.targetOffsetY;
+      }
+      const board = boardRef.current;
+      if (board) {
+        board.style.transform = `translate(${c.offsetX}px, ${c.offsetY}px) scale(${c.scale})`;
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const cursorX = e.clientX - rect.left;
+    const cursorY = e.clientY - rect.top;
+
+    const c = camRef.current;
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setScale(s => Math.min(Math.max(s + delta, 0.4), 3));
+    const newScale = Math.min(Math.max(c.targetScale + delta, 0.4), 3);
+    const ratio = newScale / c.targetScale;
+    c.targetOffsetX = cursorX - (cursorX - c.targetOffsetX) * ratio;
+    c.targetOffsetY = cursorY - (cursorY - c.targetOffsetY) * ratio;
+    c.targetScale = newScale;
   }, []);
 
   useEffect(() => {
@@ -146,14 +217,18 @@ export function IsoBoard() {
       }
       return;
     }
-    dragRef.current = { startX: e.clientX, startY: e.clientY, startOffX: offset.x, startOffY: offset.y };
-  }, [offset]);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startOffX: camRef.current.targetOffsetX, startOffY: camRef.current.targetOffsetY };
+  }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragRef.current) return;
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
-    setOffset({ x: dragRef.current.startOffX + dx, y: dragRef.current.startOffY + dy });
+    const c = camRef.current;
+    c.targetOffsetX = dragRef.current.startOffX + dx;
+    c.targetOffsetY = dragRef.current.startOffY + dy;
+    c.offsetX = c.targetOffsetX;
+    c.offsetY = c.targetOffsetY;
   }, []);
 
   const handleMouseUp = useCallback(() => {
@@ -216,14 +291,16 @@ export function IsoBoard() {
       if (!walkable) tileClasses.push("unwalkable");
 
       if (state.screen === "teamSelect") {
-        if (state.deployTurn === 0 && c <= 2) tileClasses.push("deployment-zone");
-        else if (state.deployTurn === 1 && c >= 9) tileClasses.push("deployment-zone");
+        if (walkable) {
+          // P1 (deployTurn 0) deploys at bottom; P2 (deployTurn 1) at top
+          if (state.deployTurn === 0 && r >= 10 && c >= 3 && c <= 8) tileClasses.push("deployment-zone");
+          else if (state.deployTurn === 1 && r <= 1 && c >= 3 && c <= 8) tileClasses.push("deployment-zone");
+        }
         if (state.selectedDeployCell?.row === r && state.selectedDeployCell?.col === c) {
           tileClasses.push("selected");
         }
       } else {
-        if (c <= 2) tileClasses.push("deployment-zone");
-        if (c >= 9) tileClasses.push("deployment-zone");
+        if (walkable && ((r >= 10 && c >= 3 && c <= 8) || (r <= 1 && c >= 3 && c <= 8))) tileClasses.push("deployment-zone");
       }
 
       if (state.screen === "battle") {
@@ -281,7 +358,8 @@ export function IsoBoard() {
 
   const tiles: React.ReactElement[] = [];
   for (const tile of tileDataList) {
-    const pos = isoCoords(tile.r, tile.c, tileWidth, tileHeight);
+    const [vr, vc] = rotateCoords(tile.r, tile.c, rotation, BOARD_ROWS, BOARD_COLS);
+    const pos = isoCoords(vr, vc, tileWidth, tileHeight);
 
     tiles.push(
       <div
@@ -311,9 +389,6 @@ export function IsoBoard() {
     );
   }
 
-  const totalWidth = (BOARD_COLS + BOARD_ROWS) * tileWidth / 2 + tileWidth;
-  const totalHeight = (BOARD_COLS + BOARD_ROWS) * tileHeight / 2 + tileHeight;
-
   return (
     <div
       className="iso-board-wrapper"
@@ -324,13 +399,21 @@ export function IsoBoard() {
       onMouseLeave={handleMouseUp}
       onContextMenu={(e) => e.preventDefault()}
     >
+      <button
+        className="iso-rotate-btn"
+        onClick={() => setRotation(r => (r + 90) % 360)}
+        title="Rotate camera"
+      >
+        ↻
+      </button>
       <div
+        ref={boardRef}
         className="iso-board"
         style={{
           position: 'absolute',
           width: `${totalWidth}px`,
           height: `${totalHeight}px`,
-          transform: `translate(${offset.x}px, ${offset.y}px)`,
+          transformOrigin: '0 0',
         }}
       >
         {tiles}

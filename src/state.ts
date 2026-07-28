@@ -162,9 +162,10 @@ export function selectDeployCell(row: number, col: number): void {
     return; // Can't place on enemy units
   }
 
-  // Validate deployment zone
-  if (state.deployTurn === 0 && col > 2) return;
-  if (state.deployTurn === 1 && col < 9) return;
+  // Validate deployment zone (back 2 rows × middle 6 cols on each side)
+  // P1 (deployTurn 0) deploys at bottom; P2 (deployTurn 1) at top
+  if (state.deployTurn === 0 && !(row >= 10 && col >= 3 && col <= 8)) return;
+  if (state.deployTurn === 1 && !(row <= 1 && col >= 3 && col <= 8)) return;
 
   // If a unit type is selected, place it directly
   if (state.selectedUnitType && team.placed.length < 6) {
@@ -447,6 +448,7 @@ export function endTurn(): void {
 
 export function startBattle(): void {
   state.screen = "battle";
+  addLog(state, `Map: ${state.map.name}`, "info");
   addLog(state, "Battle begins!");
 
   // Rebuild board from team data
