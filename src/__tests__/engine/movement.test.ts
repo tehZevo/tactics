@@ -26,6 +26,7 @@ describe("Game Engine — Movement", () => {
       invulnerable: false,
       buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
+      originalRow: 1, originalCol: 0,
     };
 
     state.p1Team.placed = [unit1];
@@ -33,12 +34,12 @@ describe("Game Engine — Movement", () => {
 
     const result = applyAction(state, move(3, 0));
 
-    expect(result.board[1][0]).toBeNull();
-    const movedUnit = result.board[3][0];
-    expect(movedUnit).not.toBeNull();
-    expect(movedUnit!.typeId).toBe("warrior");
-    expect(movedUnit!.row).toBe(3);
-    expect(movedUnit!.col).toBe(0);
+    // Unit should have tentative position set
+    expect(result.p1Team.placed[0].tentativeRow).toBe(3);
+    expect(result.p1Team.placed[0].tentativeCol).toBe(0);
+    expect(result.p1Team.placed[0].movement).toBe(0); // 2 - 2 (dist from original)
+    // Unit should still be at original position on board
+    expect(result.board[1][0]).not.toBeNull();
   });
 
   it("should not allow movement beyond range", () => {
@@ -163,6 +164,7 @@ describe("Game Engine — Movement", () => {
       invulnerable: false,
       buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
+      originalRow: 1, originalCol: 0,
     };
 
     state.p1Team.placed = [unit1];
@@ -172,9 +174,14 @@ describe("Game Engine — Movement", () => {
 
     const step2 = applyAction(step1, move(2, 1));
 
-    const movedUnit = step2.board[2][1];
+    // Unit should have tentative position set
+    const movedUnit = getUnitFromState(step2, 0, 0);
     expect(movedUnit).not.toBeNull();
     expect(movedUnit!.typeId).toBe("warrior");
+    expect(movedUnit!.tentativeRow).toBe(2);
+    expect(movedUnit!.tentativeCol).toBe(1);
+    // Unit should still be at original position on board
+    expect(step2.board[1][0]).not.toBeNull();
 
     const finalUnit = getUnitFromState(step2, 0, 0);
     expect(finalUnit).not.toBeNull();
@@ -199,6 +206,7 @@ describe("Game Engine — Movement", () => {
       invulnerable: false,
       buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
+      originalRow: 1, originalCol: 0,
     };
 
     const archer = {
@@ -216,6 +224,7 @@ describe("Game Engine — Movement", () => {
       invulnerable: false,
       buffTurns: 0,
       turnStartRow: 1, turnStartCol: 1,
+      originalRow: 1, originalCol: 1,
     };
 
     state.p1Team.placed = [warrior, archer];
@@ -224,9 +233,14 @@ describe("Game Engine — Movement", () => {
 
     const result = applyAction(state, move(1, 3));
 
-    const movedArchers = result.board[1][3];
-    expect(movedArchers).not.toBeNull();
-    expect(movedArchers!.typeId).toBe("archer");
+    // Archer should have tentative position set
+    const movedArcher = getUnitFromState(result, 0, 1);
+    expect(movedArcher).not.toBeNull();
+    expect(movedArcher!.typeId).toBe("archer");
+    expect(movedArcher!.tentativeRow).toBe(1);
+    expect(movedArcher!.tentativeCol).toBe(3);
+    // Archer should still be at original position on board
+    expect(result.board[1][1]).not.toBeNull();
 
     const warriorResult = applyAction(state, move(1, 5));
 
@@ -276,12 +290,14 @@ describe("Game Engine — Movement", () => {
 
     const result = applyAction(state, move(1, 2));
 
-    const movedUnit = result.board[1][2];
+    // Unit should have tentative position set
+    const movedUnit = getUnitFromState(result, 0, 0);
     expect(movedUnit).not.toBeNull();
     expect(movedUnit!.typeId).toBe("warrior");
-    expect(movedUnit!.row).toBe(1);
-    expect(movedUnit!.col).toBe(2);
-    expect(result.board[1][0]).toBeNull();
+    expect(movedUnit!.tentativeRow).toBe(1);
+    expect(movedUnit!.tentativeCol).toBe(2);
+    // Unit should still be at original position on board
+    expect(result.board[1][0]).not.toBeNull();
   });
 
   it("should not allow moving onto a friendly unit", () => {

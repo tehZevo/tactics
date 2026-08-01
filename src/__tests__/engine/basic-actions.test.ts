@@ -26,8 +26,13 @@ describe("Game Engine — Basic Actions", () => {
 
     const result = applyAction(battleState, move(1, 0));
 
-    expect(result.board[0][0]).toBeNull();
-    expect(result.board[1][0]?.typeId).toBe("warrior");
+    // Unit should have tentative position set
+    const unit = getUnitFromState(result, 0, 0);
+    expect(unit).not.toBeNull();
+    expect(unit!.tentativeRow).toBe(1);
+    expect(unit!.tentativeCol).toBe(0);
+    // Unit should still be at original position on board
+    expect(result.board[0][0]).not.toBeNull();
   });
 
   it("should reject an invalid move (out of range)", () => {

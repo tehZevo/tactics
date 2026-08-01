@@ -64,6 +64,8 @@ export function createPlacedUnit(typeId: string, passiveId: string, row: number,
     leapBonus: 0,
     turnStartRow: row,
     turnStartCol: col,
+    originalRow: row,
+    originalCol: col,
   };
 }
 
@@ -112,24 +114,29 @@ export function startTeamSelect(viaAI: boolean): void {
 }
 
 export function startTestBattle(): void {
-  isVsAI = false;
+  isVsAI = true;
   state = initState();
   state.map = TEST_MAP;
 
-  const balanced = PRESET_TEAMS[0]; // Balanced team
-  const buildTeam = (side: "p1" | "p2") => {
-    const placements = getTeamPlacements(side);
-    const team: Team = { placed: [] };
-    balanced.units.forEach((unit, index) => {
+  const p1Placements = getTeamPlacements("p1");
+  const p2Placements = getTeamPlacements("p2");
+
+  const p1Team: Team = { placed: [] };
+  const p2Team: Team = { placed: [] };
+
+  const buildRandomTeam = (placements: { row: number; col: number }[], playerIndex: 0 | 1) => {
+    const random = getRandomTeam();
+    random.placed.forEach((unit, index) => {
       const pos = placements[index];
-      const placed = createPlacedUnit(unit.typeId, unit.passiveId, pos.row, pos.col, side === "p1" ? 0 : 1);
-      team.placed.push(placed);
+      unit.row = pos.row;
+      unit.col = pos.col;
+      unit.playerIndex = playerIndex;
     });
-    return team;
+    return random;
   };
 
-  state.p1Team = buildTeam("p1");
-  state.p2Team = buildTeam("p2");
+  state.p1Team = buildRandomTeam(p1Placements, 0);
+  state.p2Team = buildRandomTeam(p2Placements, 1);
   startBattle();
 }
 

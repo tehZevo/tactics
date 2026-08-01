@@ -13,6 +13,7 @@ import {
   getUnitDisplayName,
   checkVictory,
   addLog,
+  finalizeMove,
 } from "./helpers.js";
 
 export function buildTurnOrder(p1Placed: PlacedUnit[], p2Placed: PlacedUnit[]): { playerIndex: 0 | 1; unitIndex: number }[] {
@@ -58,6 +59,16 @@ export function getTurnUnit(state: GameState): PlacedUnit | null {
 
 export function advanceTurn(state: GameState): GameState {
   const prevIndex = state.currentTurnIndex;
+  
+  // Finalize any tentative moves for the previous turn's unit
+  if (prevIndex < state.turnOrder.length) {
+    const prevEntry = state.turnOrder[prevIndex];
+    const prevUnit = getUnitByRef(prevEntry, state.p1Team.placed, state.p2Team.placed);
+    if (prevUnit && (prevUnit.tentativeRow !== undefined || prevUnit.tentativeCol !== undefined)) {
+      finalizeMove(state, prevUnit);
+    }
+  }
+  
   state.currentTurnIndex++;
 
   if (state.currentTurnIndex >= state.turnOrder.length) {
@@ -70,6 +81,10 @@ export function advanceTurn(state: GameState): GameState {
       unit.movement = unit.baseMovement;
       unit.turnStartRow = unit.row;
       unit.turnStartCol = unit.col;
+      unit.originalRow = unit.row;
+      unit.originalCol = unit.col;
+      delete unit.tentativeRow;
+      delete unit.tentativeCol;
 
       if (unit.poisonTurns > 0) {
         unit.poisonTurns--;

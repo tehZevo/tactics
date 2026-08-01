@@ -21,6 +21,35 @@ export function getTurnUnit(state: GameState): PlacedUnit | null {
   return unit;
 }
 
+export function getUnitDisplayPos(unit: PlacedUnit): { row: number; col: number } {
+  if (unit.tentativeRow !== undefined && unit.tentativeCol !== undefined) {
+    return { row: unit.tentativeRow, col: unit.tentativeCol };
+  }
+  return { row: unit.row, col: unit.col };
+}
+
+export function finalizeMove(state: GameState, unit: PlacedUnit): void {
+  if (unit.tentativeRow === undefined || unit.tentativeCol === undefined) return;
+
+  const oldRow = unit.row;
+  const oldCol = unit.col;
+  const newRow = unit.tentativeRow;
+  const newCol = unit.tentativeCol;
+
+  state.board[oldRow][oldCol] = null;
+  unit.row = newRow;
+  unit.col = newCol;
+  state.board[newRow][newCol] = unit;
+
+  unit.turnStartRow = newRow;
+  unit.turnStartCol = newCol;
+  unit.originalRow = newRow;
+  unit.originalCol = newCol;
+
+  delete unit.tentativeRow;
+  delete unit.tentativeCol;
+}
+
 export function getUnitAt(state: GameState, row: number, col: number): PlacedUnit | null {
   if (row < 0 || row >= BOARD_ROWS || col < 0 || col >= BOARD_COLS) return null;
   return state.board[row][col];
@@ -35,8 +64,9 @@ export function getReachableTiles(state: GameState, unit: PlacedUnit): Set<strin
   const maxDist = unit.movement + (unit.leapBonus || 0);
   const map = state.map;
   const visited = new Set<string>();
-  const queue: { row: number; col: number; dist: number }[] = [{ row: unit.row, col: unit.col, dist: 0 }];
-  visited.add(`${unit.row},${unit.col}`);
+  const startPos = getUnitDisplayPos(unit);
+  const queue: { row: number; col: number; dist: number }[] = [{ row: startPos.row, col: startPos.col, dist: 0 }];
+  visited.add(`${startPos.row},${startPos.col}`);
 
   while (queue.length > 0) {
     const curr = queue.shift()!;

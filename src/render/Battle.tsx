@@ -20,6 +20,7 @@ import { TurnOrderStrip, UnitPanel, BattleLog } from "./components/BattleCompone
 import { IsoBoard, centerBoardCamera } from "./components/IsoBoard";
 import { useState, useEffect } from "react";
 import { UNIT_TYPE_DEFS, SKILL_DEFS } from "../data/index";
+import type { PlacedUnit } from "../state";
 
 let _isVsAI = getIsVsAI();
 
@@ -27,6 +28,7 @@ export function Battle() {
   const [version, setVersion] = useState(0);
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
   const [showBattleLog, setShowBattleLog] = useState(false);
+  const [previewUnit, setPreviewUnit] = useState<PlacedUnit | null>(null);
 
   useEffect(() => {
     return subscribe(() => {
@@ -43,6 +45,10 @@ export function Battle() {
 
   const handleEndTurn = () => {
     endTurn();
+  };
+
+  const handleSelectUnit = (unit: PlacedUnit | null) => {
+    setPreviewUnit(unit);
   };
 
   const turnUnit = getTurnUnit(state);
@@ -82,7 +88,7 @@ export function Battle() {
   return (
     <div className="screen active battle-screen">
       <div className="battle-board-fullscreen">
-        <IsoBoard />
+        <IsoBoard onPreviewUnit={handleSelectUnit} />
       </div>
 
       <TurnOrderStrip />
@@ -96,7 +102,12 @@ export function Battle() {
         )}
       </div>
 
-      <UnitPanel />
+      {previewUnit && (
+        <UnitPanel
+          unit={previewUnit}
+          onClose={() => setPreviewUnit(null)}
+        />
+      )}
 
       {isHumanTurn && (
         <div className="action-bar">
@@ -141,7 +152,20 @@ export function Battle() {
               </button>
             </>
           ) : state.actionMode === "selectTarget" ? (
-            <div className="action-bar-prompt">Select placement cell</div>
+            <>
+              <div className="action-bar-prompt">Select a target</div>
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  state.actionMode = "idle";
+                  state.selectedAction = null;
+                  state.pendingRuneLocation = null;
+                  notifySubscribers();
+                }}
+              >
+                Cancel
+              </button>
+            </>
           ) : (
             skillButtons.map((sb) => (
               <button

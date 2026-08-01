@@ -1161,7 +1161,7 @@ body {
 
 /* Unit panel (right side) */
 .unit-panel {
-  position: fixed;
+  position: relative;
   top: 3.5rem;
   right: 0.5rem;
   width: 240px;
@@ -1331,6 +1331,28 @@ body {
   font-size: 0.68rem;
   color: #6b7280;
   margin-top: 0.1rem;
+}
+.unit-panel-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 26px;
+  height: 26px;
+  background: #2d3348;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 0.12s;
+}
+.unit-panel-close:hover {
+  background: #4b5563;
+  color: #e8eaf0;
 }
 
 /* Battle log */
@@ -2096,8 +2118,19 @@ body {
     max-height: none;
   }
   .unit-panel {
-    width: 200px;
-    max-height: calc(100vh - 4.5rem);
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    z-index: 100;
+    padding: 0.75rem;
+    padding-top: 2.5rem;
+    overflow-y: auto;
+    background: rgba(10, 12, 20, 0.95);
   }
   .up-skill-toggle {
     padding: 0.5rem;
@@ -2227,7 +2260,8 @@ body {
   }
   .unit-panel {
     font-size: 0.72rem;
-    max-height: 160px;
+    padding: 0.5rem;
+    padding-top: 2.5rem;
   }
   .battle-log {
     max-height: 80px;

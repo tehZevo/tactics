@@ -24,6 +24,10 @@ export interface PlacedUnit {
   leapBonus?: number; // temporary extra movement from Leap skill
   turnStartRow: number; // position at start of turn (for movement radius)
   turnStartCol: number;
+  tentativeRow?: number; // preview position for move (before confirmed)
+  tentativeCol?: number;
+  originalRow: number; // position at start of turn (for rollback)
+  originalCol: number;
   playerIndex?: 0 | 1; // which player controls this unit (optional, falls back to row-based)
 }
 

@@ -17,14 +17,10 @@ export function executeMove(state: GameState, row: number, col: number): void {
   if (!reachable.has(`${row},${col}`)) return;
   if (state.board[row][col] !== null) return;
 
-  const oldRow = turnUnit.row;
-  const oldCol = turnUnit.col;
-
-  state.board[oldRow][oldCol] = null;
-  turnUnit.row = row;
-  turnUnit.col = col;
-  state.board[row][col] = turnUnit;
-  turnUnit.leapBonus = 0;
+  const dist = Math.abs(row - turnUnit.originalRow) + Math.abs(col - turnUnit.originalCol);
+  turnUnit.tentativeRow = row;
+  turnUnit.tentativeCol = col;
+  turnUnit.movement -= dist;
 
   addLog(state, `${getUnitDisplayName(turnUnit)} moves to (${row},${col}).`);
   state.actionMode = "idle";
@@ -42,14 +38,11 @@ export function executeLeap(state: GameState, targetRow: number, targetCol: numb
   if (!reachable.has(`${targetRow},${targetCol}`)) return;
   if (state.board[targetRow][targetCol] !== null) return;
 
-  const oldRow = turnUnit.row;
-  const oldCol = turnUnit.col;
-
-  state.board[oldRow][oldCol] = null;
-  turnUnit.row = targetRow;
-  turnUnit.col = targetCol;
-  state.board[targetRow][targetCol] = turnUnit;
+  const dist = Math.abs(targetRow - turnUnit.originalRow) + Math.abs(targetCol - turnUnit.originalCol);
+  turnUnit.tentativeRow = targetRow;
+  turnUnit.tentativeCol = targetCol;
   turnUnit.leapBonus = 0;
+  turnUnit.movement -= dist;
 
   addLog(state, `${getUnitDisplayName(turnUnit)} leaps to (${targetRow},${targetCol})!`);
   state.actionMode = "idle";

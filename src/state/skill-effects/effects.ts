@@ -16,6 +16,8 @@ import {
   isOwnUnit,
   addLog,
   findUnitRef,
+  finalizeMove,
+  getUnitDisplayPos,
 } from "../helpers.js";
 import {
   prepareSkillUse,
@@ -28,7 +30,6 @@ import {
 export const singleTargetAttack: SkillApplyFn = (state, caster, target, skillId) => {
   if (!target) return;
   const skill = SKILL_DEFS[skillId];
-  if (!prepareSkillUse(state, caster, skill)) return;
   if (!validateRange(caster, target, skill, state)) return;
   if (target.invulnerable) {
     addLog(state, `${getUnitDisplayName(target)} phases through the attack, unharmed!`, "info");
@@ -66,7 +67,6 @@ export const singleTargetAttack: SkillApplyFn = (state, caster, target, skillId)
 export const aoeAttack: SkillApplyFn = (state, caster, target, skillId) => {
   if (!target) return;
   const skill = SKILL_DEFS[skillId];
-  if (!prepareSkillUse(state, caster, skill)) return;
   if (target.invulnerable) {
     addLog(state, `${getUnitDisplayName(target)} phases through the attack, unharmed!`, "info");
     clearActionMode(state);
@@ -107,7 +107,6 @@ export const aoeAttack: SkillApplyFn = (state, caster, target, skillId) => {
 export const heal: SkillApplyFn = (state, caster, target, skillId) => {
   if (!target) return;
   const skill = SKILL_DEFS[skillId];
-  if (!prepareSkillUse(state, caster, skill)) return;
   if (!validateRange(caster, target, skill, state)) return;
   if (!isOwnUnit(caster, target)) return;
 
@@ -534,7 +533,13 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
   if (turnUnit.ap < skill.cost) return;
   if (turnUnit.skillUsedThisTurn) return;
 
-  const dist = Math.abs(turnUnit.row - target.row) + Math.abs(turnUnit.col - target.col);
+  // Finalize tentative move before skill use
+  if (turnUnit.tentativeRow !== undefined && turnUnit.tentativeCol !== undefined) {
+    finalizeMove(state, turnUnit);
+  }
+
+  const startPos = getUnitDisplayPos(turnUnit);
+  const dist = Math.abs(startPos.row - target.row) + Math.abs(startPos.col - target.col);
   let effectiveRange = getEffectiveRange(turnUnit, state, skill);
   if (turnUnit.passiveId === "tracker") effectiveRange += 1;
 
@@ -560,6 +565,7 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
       state.selectedAction = null;
       return;
     }
+    turnUnit.ap -= skill.cost;
     singleTargetAttack(state, turnUnit, target, skillId);
   } else if (skill.type === "heal") {
     if (!isOwnUnit(turnUnit, target)) return;

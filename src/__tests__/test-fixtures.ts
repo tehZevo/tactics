@@ -39,6 +39,8 @@ function defaultUnit(typeId: string, passiveId: string, playerIndex: 0 | 1, row:
     defenseBonus: 0,
     turnStartRow: row,
     turnStartCol: col,
+    originalRow: row,
+    originalCol: col,
   };
 }
 

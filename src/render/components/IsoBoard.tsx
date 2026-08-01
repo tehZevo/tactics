@@ -46,9 +46,11 @@ function rotateCoords(r: number, c: number, rotation: number, rows: number, cols
 function TileUnit({
   unit,
   metrics,
+  onPreviewUnit,
 }: {
   unit: PlacedUnit;
   metrics: { unitSize: number; hpBarWidth: number; apDotSize: number; tuFontSize: number; tuHpBarHeight: number; tuHpBarGap: number };
+  onPreviewUnit?: (unit: PlacedUnit | null) => void;
 }) {
   const td = UNIT_TYPE_DEFS[unit.typeId];
   const classes: string[] = [
@@ -79,6 +81,10 @@ function TileUnit({
         height: `${unitSize}px`,
         fontSize: `${tuFontSize}px`,
       }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onPreviewUnit?.(unit);
+      }}
     >
       <div className="tu-shadow" />
       <div className="tu-name">{td.icon}</div>
@@ -105,7 +111,7 @@ function TileUnit({
   );
 }
 
-export function IsoBoard() {
+export function IsoBoard({ onPreviewUnit }: { onPreviewUnit?: (unit: PlacedUnit | null) => void } = {}) {
   const map = state.map;
   const wrapperRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -543,6 +549,10 @@ export function IsoBoard() {
             if (selUnit === turnUnit && selUnit.currentHp > 0) {
               const reachable = getReachableTiles(state, selUnit);
               if (reachable.has(`${r},${c}`) && !state.board[r][c]) tileClasses.push("move-highlight");
+              // Show tentative move position
+              if (selUnit.tentativeRow === r && selUnit.tentativeCol === c) {
+                tileClasses.push("tentative-move");
+              }
             }
           }
         }
@@ -653,7 +663,7 @@ export function IsoBoard() {
         )}
         {tile.unit && (
           <div className="iso-unit-container">
-            <TileUnit unit={tile.unit} metrics={metrics} />
+            <TileUnit unit={tile.unit} metrics={metrics} onPreviewUnit={onPreviewUnit} />
           </div>
         )}
       </div>

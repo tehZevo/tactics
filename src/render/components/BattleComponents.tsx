@@ -134,23 +134,25 @@ export function TurnOrderStrip() {
   );
 }
 
-export function UnitPanel() {
-  const turnUnit = getTurnUnit(state);
-  const playerIdx = turnUnit ? getPlayerIndex(turnUnit) : 0;
+export function UnitPanel({ unit, onClose }: { unit: PlacedUnit | null; onClose?: () => void }) {
+  const playerIdx = unit ? getPlayerIndex(unit) : 0;
 
   return (
-    <div className={`unit-panel${turnUnit ? ` p${playerIdx + 1}` : ""}`}>
-      {turnUnit ? (
+    <div className={`unit-panel${unit ? ` p${playerIdx + 1}` : ""}`}>
+      {unit ? (
         <>
-          <UnitHeader unit={turnUnit} />
+          {onClose && (
+            <button className="unit-panel-close" onClick={onClose} aria-label="Close">✕</button>
+          )}
+          <UnitHeader unit={unit} />
           <div className="up-hp-row">
             <span className="up-hp-label">HP</span>
-            <span className="up-hp-value">{turnUnit.currentHp}/{getUnitMaxHp(turnUnit)}</span>
-            <HpBar current={turnUnit.currentHp} max={getUnitMaxHp(turnUnit)} />
+            <span className="up-hp-value">{unit.currentHp}/{getUnitMaxHp(unit)}</span>
+            <HpBar current={unit.currentHp} max={getUnitMaxHp(unit)} />
           </div>
-          <StatBlock unit={turnUnit} />
-          <PassiveDisplay unit={turnUnit} />
-          <SkillList unit={turnUnit} />
+          <StatBlock unit={unit} />
+          <PassiveDisplay unit={unit} />
+          <SkillList unit={unit} />
         </>
       ) : (
         <p className="unit-panel-empty">No active unit</p>
