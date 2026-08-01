@@ -5,6 +5,7 @@ import {
   getUnitDisplayName,
   addLog,
 } from "../helpers.js";
+import { getEffectiveRange } from "./effects.js";
 export { checkVictory } from "../helpers.js";
 
 export function prepareSkillUse(state: GameState, caster: PlacedUnit, skill: SkillDef): boolean {
@@ -22,9 +23,9 @@ export function clearActionMode(state: GameState): void {
   state.selectedAction = null;
 }
 
-export function validateRange(caster: PlacedUnit, target: PlacedUnit, skill: SkillDef): boolean {
+export function validateRange(caster: PlacedUnit, target: PlacedUnit, skill: SkillDef, state: GameState): boolean {
   const dist = Math.abs(caster.row - target.row) + Math.abs(caster.col - target.col);
-  let effectiveRange = skill.range;
+  let effectiveRange = getEffectiveRange(caster, state, skill);
   if (caster.passiveId === "tracker") effectiveRange += 1;
   if (skill.selfTarget && target !== caster) return false;
   return dist <= effectiveRange;

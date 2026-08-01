@@ -12,9 +12,12 @@ import {
   notifySubscribers,
   getPlayerIndex,
   forfeit,
+  findUnitRef,
+  applyAction,
 } from "../state";
+import { useSkill } from "../state/actions/index.js";
 import { TurnOrderStrip, UnitPanel, BattleLog } from "./components/BattleComponents";
-import { IsoBoard } from "./components/IsoBoard";
+import { IsoBoard, centerBoardCamera } from "./components/IsoBoard";
 import { useState, useEffect } from "react";
 import { UNIT_TYPE_DEFS, SKILL_DEFS } from "../data/index";
 
@@ -23,6 +26,7 @@ let _isVsAI = getIsVsAI();
 export function Battle() {
   const [version, setVersion] = useState(0);
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
+  const [showBattleLog, setShowBattleLog] = useState(false);
 
   useEffect(() => {
     return subscribe(() => {
@@ -30,20 +34,15 @@ export function Battle() {
     });
   }, []);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      centerBoardCamera();
+    }, 100);
+    return () => clearTimeout(timeout);
+  }, []);
+
   const handleEndTurn = () => {
     endTurn();
-    _isVsAI = getIsVsAI();
-    if (_isVsAI && state.screen === "battle") {
-      const nextUnit = getTurnUnit(state);
-      const nextIsAI = nextUnit && getPlayerIndex(nextUnit) === 1;
-      if (nextIsAI) {
-        setTimeout(() => {
-          if (state.screen === "battle") {
-            aiTakeTurn(state);
-          }
-        }, 300);
-      }
-    }
   };
 
   const turnUnit = getTurnUnit(state);
@@ -101,25 +100,48 @@ export function Battle() {
 
       {isHumanTurn && (
         <div className="action-bar">
-          {state.actionMode === "selectTarget" ? (
+          {state.actionMode === "selectTarget" && state.pendingRuneLocation ? (
             <>
               <div className="action-bar-prompt">
-                Select target for{" "}
-                {state.selectedAction && "skillId" in state.selectedAction
+                Place{" "}
+                {state.selectedAction && state.selectedAction.type === "runePlacement"
                   ? SKILL_DEFS[state.selectedAction.skillId]?.name ?? state.selectedAction.skillId
-                  : ""}
+                  : ""}{" "}
+                at ({state.pendingRuneLocation.row}, {state.pendingRuneLocation.col})
               </div>
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  const action = state.selectedAction;
+                  if (action && action.type === "runePlacement") {
+                    const turnUnit = getTurnUnit(state);
+                    if (turnUnit && state.pendingRuneLocation) {
+                      const casterRef = findUnitRef(turnUnit, state.p1Team.placed, state.p2Team.placed) as { playerIndex: 0 | 1; unitIndex: number };
+                      const newState = applyAction(state, useSkill(casterRef, null, action.skillId, state.pendingRuneLocation));
+                      state.actionMode = "idle";
+                      state.selectedAction = null;
+                      state.pendingRuneLocation = null;
+                      notifySubscribers();
+                    }
+                  }
+                }}
+              >
+                Confirm
+              </button>
               <button
                 className="btn btn-sm"
                 onClick={() => {
                   state.actionMode = "idle";
                   state.selectedAction = null;
+                  state.pendingRuneLocation = null;
                   notifySubscribers();
                 }}
               >
                 Cancel
               </button>
             </>
+          ) : state.actionMode === "selectTarget" ? (
+            <div className="action-bar-prompt">Select placement cell</div>
           ) : (
             skillButtons.map((sb) => (
               <button
@@ -133,25 +155,21 @@ export function Battle() {
             ))
           )}
           {state.actionMode !== "selectTarget" && (
-            <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
-              End Turn
-            </button>
+            <>
+              <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
+                End Turn
+              </button>
+              <button className="btn btn-sm" onClick={() => setShowBattleLog(true)}>
+                Battle Log
+              </button>
+              <button className="btn btn-sm forfeit-btn" onClick={() => setShowForfeitConfirm(true)}>
+                Forfeit
+              </button>
+            </>
           )}
         </div>
       )}
-      {!isHumanTurn && (
-        <button className="btn btn-sm end-turn-btn" onClick={handleEndTurn}>
-          End Turn
-        </button>
-      )}
 
-      <BattleLog />
-
-      {isHumanTurn && (
-        <button className="btn btn-sm forfeit-btn" onClick={() => setShowForfeitConfirm(true)}>
-          Forfeit
-        </button>
-      )}
 
       {showForfeitConfirm && (
         <div className="modal-overlay" onClick={() => setShowForfeitConfirm(false)}>
@@ -162,6 +180,20 @@ export function Battle() {
               <button className="btn btn-sm" onClick={() => setShowForfeitConfirm(false)}>Cancel</button>
               <button className="btn btn-sm btn-danger" onClick={forfeit}>Forfeit</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showBattleLog && (
+        <div className="modal-overlay battle-log-modal" onClick={() => setShowBattleLog(false)}>
+          <div className="battle-log battle-log-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="bl-title">Battle Log</div>
+            <div className="bl-entries">
+              {[...state.log].reverse().map((entry, i) => (
+                <div key={state.log.length - 1 - i} className={`log-entry ${entry.type}`}>{entry.text}</div>
+              ))}
+            </div>
+            <button className="btn btn-sm" onClick={() => setShowBattleLog(false)}>Close</button>
           </div>
         </div>
       )}

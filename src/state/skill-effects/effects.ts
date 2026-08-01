@@ -3,8 +3,10 @@ import {
   BOARD_ROWS,
 } from "../../data/index.js";
 import { SKILL_DEFS } from "../../data/index.js";
+import type { SkillDef } from "../../data/skills.js";
 import type { SkillApplyFn } from "../../data/skills.js";
 import type { GameState, PlacedUnit } from "../types.js";
+import { getTurnUnit } from "../turns.js";
 import {
   calculateDamage,
   getReachableTiles,
@@ -27,7 +29,7 @@ export const singleTargetAttack: SkillApplyFn = (state, caster, target, skillId)
   if (!target) return;
   const skill = SKILL_DEFS[skillId];
   if (!prepareSkillUse(state, caster, skill)) return;
-  if (!validateRange(caster, target, skill)) return;
+  if (!validateRange(caster, target, skill, state)) return;
   if (target.invulnerable) {
     addLog(state, `${getUnitDisplayName(target)} phases through the attack, unharmed!`, "info");
     clearActionMode(state);
@@ -106,7 +108,7 @@ export const heal: SkillApplyFn = (state, caster, target, skillId) => {
   if (!target) return;
   const skill = SKILL_DEFS[skillId];
   if (!prepareSkillUse(state, caster, skill)) return;
-  if (!validateRange(caster, target, skill)) return;
+  if (!validateRange(caster, target, skill, state)) return;
   if (!isOwnUnit(caster, target)) return;
 
   const healAmount = skill.healAmount || 4;
@@ -131,11 +133,58 @@ export const buff: SkillApplyFn = (state, caster, _target, skillId) => {
   clearActionMode(state);
 };
 
+export const focusEffect: SkillApplyFn = (state, caster, _target, skillId) => {
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+
+  caster.focusCharges = (caster.focusCharges || 0) + 1;
+  addLog(state, `${getUnitDisplayName(caster)} centers their mind. +1 AP next turn.`, "info");
+
+  clearActionMode(state);
+};
+
+export const repositionEffect: SkillApplyFn = (state, caster, target, skillId) => {
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+  if (!target || !isOwnUnit(caster, target)) return;
+
+  const dist = Math.abs(caster.row - target.row) + Math.abs(caster.col - target.col);
+  if (dist > skill.range) return;
+
+  state.selectedAction = { type: "reposition", target: target, skillId: skillId };
+  state.actionMode = "selectTarget";
+  clearActionMode(state);
+};
+
+export const executeReposition: SkillApplyFn = (state, caster, _target, skillId, location) => {
+  if (!location) return;
+  const action = state.selectedAction;
+  if (!action || action.type !== "reposition") return;
+
+  const target = action.target;
+  if (!target || state.board[target.row][target.col] !== target) return;
+
+  const dist = Math.abs(caster.row - location.row) + Math.abs(caster.col - location.col);
+  if (dist > 2) return;
+  if (state.board[location.row][location.col] !== null) return;
+
+  state.board[caster.row][caster.col] = null;
+  state.board[target.row][target.col] = null;
+  state.board[location.row][location.col] = target;
+  target.row = location.row;
+  target.col = location.col;
+
+  addLog(state, `${getUnitDisplayName(caster)} repositions ${getUnitDisplayName(target)} to (${location.row},${location.col})!`, "info");
+
+  state.selectedAction = null;
+  state.actionMode = "idle";
+};
+
 export const movementSwap: SkillApplyFn = (state, caster, target, skillId) => {
   if (!target) return;
   const skill = SKILL_DEFS[skillId];
   if (!prepareSkillUse(state, caster, skill)) return;
-  if (!validateRange(caster, target, skill)) return;
+  if (!validateRange(caster, target, skill, state)) return;
 
   const targetRow = target.row;
   const targetCol = target.col;
@@ -184,7 +233,7 @@ export const apDrain: SkillApplyFn = (state, caster, target, skillId) => {
   if (!target) return;
   const skill = SKILL_DEFS[skillId];
   if (!prepareSkillUse(state, caster, skill)) return;
-  if (!validateRange(caster, target, skill)) return;
+  if (!validateRange(caster, target, skill, state)) return;
   if (isOwnUnit(caster, target)) return;
 
   const drainAmount = skill.apDrain || 1;
@@ -218,11 +267,58 @@ export const leapEffect: SkillApplyFn = (state, caster, _target, _skillId, locat
   clearActionMode(state);
 };
 
+export const leapStrikeEffect: SkillApplyFn = (state, caster, _target, skillId, location) => {
+  if (!location) return;
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+
+  // Validate range (range 2)
+  const dist = Math.abs(location.row - caster.row) + Math.abs(location.col - caster.col);
+  if (dist > skill.range!) return;
+  if (state.board[location.row][location.col] !== null) return;
+
+  // Move caster to target location
+  state.board[caster.row][caster.col] = null;
+  caster.row = location.row;
+  caster.col = location.col;
+  state.board[location.row][location.col] = caster;
+  addLog(state, `${getUnitDisplayName(caster)} leaps to (${location.row},${location.col})!`);
+
+  // Deal AoE damage to enemies in radius 1 of landing spot
+  const radius = skill.aoe!;
+  const damage = skill.damage!;
+  let hitCount = 0;
+
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const t = state.board[r][c];
+      if (!t || isOwnUnit(caster, t) || t.invulnerable) continue;
+      if (Math.abs(r - location.row) + Math.abs(c - location.col) > radius) continue;
+
+      t.currentHp -= damage;
+      hitCount++;
+
+      addLog(state, `${getUnitDisplayName(t)} takes ${damage} damage from ${skill.name}!`, "damage");
+
+      if (t.currentHp <= 0) {
+        t.currentHp = 0;
+        state.board[t.row][t.col] = null;
+        addLog(state, `${getUnitDisplayName(t)} is defeated!`, "damage");
+        applyBloodthirsty(caster, state);
+        checkVictory(state);
+      }
+    }
+  }
+
+  addLog(state, `${getUnitDisplayName(caster)} uses ${skill.name}! ${hitCount} enemies hit for ${damage * hitCount} total damage.`, "damage");
+  clearActionMode(state);
+};
+
 export const reorderTurn: SkillApplyFn = (state, caster, target, skillId) => {
   if (!target) return;
   const skill = SKILL_DEFS[skillId];
   if (!prepareSkillUse(state, caster, skill)) return;
-  if (!validateRange(caster, target, skill)) return;
+  if (!validateRange(caster, target, skill, state)) return;
 
   const casterRef = findUnitRef(caster, state.p1Team.placed, state.p2Team.placed);
   const targetRef = findUnitRef(target, state.p1Team.placed, state.p2Team.placed);
@@ -249,3 +345,258 @@ export const reorderTurn: SkillApplyFn = (state, caster, target, skillId) => {
 
   clearActionMode(state);
 };
+
+export const poisonAttack: SkillApplyFn = (state, caster, target, skillId) => {
+  if (!target) return;
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+  if (!validateRange(caster, target, skill, state)) return;
+  if (target.invulnerable) {
+    addLog(state, `${getUnitDisplayName(target)} phases through the attack, unharmed!`, "info");
+    clearActionMode(state);
+    return;
+  }
+  if (isOwnUnit(caster, target)) return;
+
+  const damage = calculateDamage(caster, target, skillId);
+  target.currentHp -= damage;
+  const poisonDur = skill.poisonTurns || 2;
+  target.poisonTurns = (target.poisonTurns || 0) + poisonDur;
+  addLog(state, `${getUnitDisplayName(caster)} uses ${skill.name} on ${getUnitDisplayName(target)} for ${damage} damage! They are poisoned for ${poisonDur} turns!`, "damage");
+
+  if (target.currentHp <= 0) {
+    target.currentHp = 0;
+    state.board[target.row][target.col] = null;
+    addLog(state, `${getUnitDisplayName(target)} is defeated!`, "damage");
+    applyBloodthirsty(caster, state);
+    checkVictory(state);
+  }
+
+  clearActionMode(state);
+};
+
+export const cleanseEffect: SkillApplyFn = (state, caster, target, skillId) => {
+  if (!target) return;
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+  if (!validateRange(caster, target, skill, state)) return;
+  if (!isOwnUnit(caster, target)) return;
+
+  if (target.poisonTurns > 0) {
+    addLog(state, `${getUnitDisplayName(caster)} uses ${skill.name} on ${getUnitDisplayName(target)}, clearing their poison!`, "heal");
+  }
+  target.poisonTurns = 0;
+
+  clearActionMode(state);
+};
+
+export const berserkEffect: SkillApplyFn = (state, caster, _target, skillId) => {
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+
+  const duration = skill.buffDuration || 2;
+  caster.buffTurns = (caster.buffTurns || 0) + duration;
+  addLog(state, `${getUnitDisplayName(caster)} enters a berserk rage! +1 attack, -1 defense for ${duration} turns!`, "info");
+
+  clearActionMode(state);
+};
+
+// ============================================================
+//  flameRune
+// ============================================================
+export const flameRuneEffect: SkillApplyFn = (state, caster, target, skillId) => {
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+
+  const runeRow = target?.row ?? caster.row;
+  const runeCol = target?.col ?? caster.col;
+  const duration = skill.runeTurns || 3;
+
+  const existingRune = state.runeEffects.find(
+    r => r.row === runeRow && r.col === runeCol && r.type === "flame" && r.playerIndex === caster.playerIndex
+  );
+
+  if (existingRune) {
+    existingRune.turns = duration;
+    addLog(state, `${getUnitDisplayName(caster)} refreshes the Flame Rune at (${runeRow}, ${runeCol})!`, "info");
+  } else {
+    state.runeEffects.push({ row: runeRow, col: runeCol, turns: duration, type: "flame", playerIndex: caster.playerIndex });
+    addLog(state, `${getUnitDisplayName(caster)} places a Flame Rune at (${runeRow}, ${runeCol})! Enemies standing on it take 1 damage at end of turn.`, "info");
+  }
+
+  clearActionMode(state);
+};
+
+// ============================================================
+//  windRune
+// ============================================================
+export const windRuneEffect: SkillApplyFn = (state, caster, target, skillId) => {
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+
+  const runeRow = target?.row ?? caster.row;
+  const runeCol = target?.col ?? caster.col;
+  const duration = skill.runeTurns || 4;
+
+  const existingRune = state.runeEffects.find(
+    r => r.row === runeRow && r.col === runeCol && r.type === "wind" && r.playerIndex === caster.playerIndex
+  );
+
+  if (existingRune) {
+    existingRune.turns = duration;
+    addLog(state, `${getUnitDisplayName(caster)} refreshes the Wind Rune at (${runeRow}, ${runeCol})!`, "info");
+  } else {
+    state.runeEffects.push({ row: runeRow, col: runeCol, turns: duration, type: "wind", playerIndex: caster.playerIndex });
+    addLog(state, `${getUnitDisplayName(caster)} places a Wind Rune at (${runeRow}, ${runeCol})! Units starting their turn on it gain +1 movement.`, "info");
+  }
+
+  clearActionMode(state);
+};
+
+// ============================================================
+//  earthRune
+// ============================================================
+export const earthRuneEffect: SkillApplyFn = (state, caster, target, skillId) => {
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+
+  const runeRow = target?.row ?? caster.row;
+  const runeCol = target?.col ?? caster.col;
+  const duration = skill.runeTurns || 4;
+
+  const existingRune = state.runeEffects.find(
+    r => r.row === runeRow && r.col === runeCol && r.type === "earth" && r.playerIndex === caster.playerIndex
+  );
+
+  if (existingRune) {
+    existingRune.turns = duration;
+    addLog(state, `${getUnitDisplayName(caster)} refreshes the Earth Rune at (${runeRow}, ${runeCol})!`, "info");
+  } else {
+    state.runeEffects.push({ row: runeRow, col: runeCol, turns: duration, type: "earth", playerIndex: caster.playerIndex });
+    addLog(state, `${getUnitDisplayName(caster)} places an Earth Rune at (${runeRow}, ${runeCol})! Units ending their turn on it gain +1 defense.`, "info");
+  }
+
+  clearActionMode(state);
+};
+
+// ============================================================
+//  darknessRune
+// ============================================================
+export const darknessRuneEffect: SkillApplyFn = (state, caster, target, skillId) => {
+  const skill = SKILL_DEFS[skillId];
+  if (!prepareSkillUse(state, caster, skill)) return;
+
+  const runeRow = target?.row ?? caster.row;
+  const runeCol = target?.col ?? caster.col;
+  const duration = skill.runeTurns || 3;
+
+  const existingRune = state.runeEffects.find(
+    r => r.row === runeRow && r.col === runeCol && r.type === "darkness" && r.playerIndex === caster.playerIndex
+  );
+
+  if (existingRune) {
+    existingRune.turns = duration;
+    addLog(state, `${getUnitDisplayName(caster)} refreshes the Darkness Rune at (${runeRow}, ${runeCol})!`, "info");
+  } else {
+    state.runeEffects.push({ row: runeRow, col: runeCol, turns: duration, type: "darkness", playerIndex: caster.playerIndex });
+    addLog(state, `${getUnitDisplayName(caster)} places a Darkness Rune at (${runeRow}, ${runeCol})! Ranged attacks lose 1 range (minimum 1).`, "info");
+  }
+
+  clearActionMode(state);
+};
+
+// ============================================================
+//  getEffectiveRange
+// ============================================================
+export function getEffectiveRange(unit: PlacedUnit, state: GameState, skill: SkillDef): number {
+  let effectiveRange = skill.range;
+
+  // Check if unit is standing on an enemy darkness rune
+  const darknessRune = state.runeEffects.find(
+    r => r.row === unit.row && r.col === unit.col && r.type === "darkness" && r.playerIndex !== unit.playerIndex
+  );
+
+  if (darknessRune) {
+    // Physical attacks (range <= 1) should not be affected
+    if (skill.range > 1) {
+      effectiveRange = Math.max(1, effectiveRange - 1);
+    }
+  }
+
+  return effectiveRange;
+}
+
+export function executeAttack(state: GameState, skillId: string, target: PlacedUnit): void {
+  const turnUnit = getTurnUnit(state);
+  if (!turnUnit) return;
+
+  const skill = SKILL_DEFS[skillId];
+  if (turnUnit.ap < skill.cost) return;
+  if (turnUnit.skillUsedThisTurn) return;
+
+  const dist = Math.abs(turnUnit.row - target.row) + Math.abs(turnUnit.col - target.col);
+  let effectiveRange = getEffectiveRange(turnUnit, state, skill);
+  if (turnUnit.passiveId === "tracker") effectiveRange += 1;
+
+  if (skill.selfTarget && target !== turnUnit) return;
+  if (dist > effectiveRange) return;
+
+  if (target.invulnerable) {
+    addLog(state, `${getUnitDisplayName(target)} phases through the attack, unharmed!`, "info");
+    state.actionMode = "idle";
+    state.selectedAction = null;
+    return;
+  }
+
+  turnUnit.skillUsedThisTurn = true;
+  const displacement = Math.abs(turnUnit.row - turnUnit.turnStartRow) + Math.abs(turnUnit.col - turnUnit.turnStartCol);
+  turnUnit.movement -= displacement;
+
+  if (skill.type === "attack") {
+    if (skill.aoe && skill.aoe > 0) {
+      turnUnit.ap -= skill.cost;
+      aoeAttack(state, turnUnit, target, skillId);
+      state.actionMode = "idle";
+      state.selectedAction = null;
+      return;
+    }
+    singleTargetAttack(state, turnUnit, target, skillId);
+  } else if (skill.type === "heal") {
+    if (!isOwnUnit(turnUnit, target)) return;
+    turnUnit.ap -= skill.cost;
+    heal(state, turnUnit, target, skillId);
+  } else if (skill.type === "buff") {
+    turnUnit.ap -= skill.cost;
+    if (skill.grantsInvulnerability) {
+      turnUnit.invulnerable = true;
+      addLog(state, `${getUnitDisplayName(turnUnit)} phases out of reality, becoming invulnerable until their next turn!`, "info");
+    }
+    if (skill.reorderTarget) {
+      reorderTurn(state, turnUnit, target, skillId);
+    } else {
+      addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}!`, "info");
+      clearActionMode(state);
+    }
+  } else if (skill.type === "movement") {
+    turnUnit.ap -= skill.cost;
+    if (skill.swapTarget) {
+      movementSwap(state, turnUnit, target, skillId);
+    } else if (skill.selfTarget) {
+      movementTeleport(state, turnUnit, target, skillId);
+    } else {
+      addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name}!`, "info");
+      clearActionMode(state);
+    }
+  } else if (skill.type === "apDrain") {
+    if (isOwnUnit(turnUnit, target)) return;
+    turnUnit.ap -= skill.cost;
+    apDrain(state, turnUnit, target, skillId);
+  }
+
+  state.actionMode = "idle";
+  state.selectedAction = null;
+}
+
+export function executeAoeAttack(state: GameState, attacker: PlacedUnit, skill: SkillDef, skillId: string, center: PlacedUnit): void {
+  aoeAttack(state, attacker, center, skillId);
+}

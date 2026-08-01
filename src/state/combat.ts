@@ -71,7 +71,12 @@ export function executeAttack(state: GameState, skillId: string, target: PlacedU
     target.currentHp -= damage;
     turnUnit.ap -= skill.cost;
 
-    addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name} on ${getUnitDisplayName(target)} for ${damage} damage!`, "damage");
+    if (skill.poisonTurns) {
+      target.poisonTurns = (target.poisonTurns || 0) + skill.poisonTurns;
+      addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name} on ${getUnitDisplayName(target)} for ${damage} damage! They are poisoned for ${skill.poisonTurns} turns!`, "damage");
+    } else {
+      addLog(state, `${getUnitDisplayName(turnUnit)} uses ${skill.name} on ${getUnitDisplayName(target)} for ${damage} damage!`, "damage");
+    }
 
     if (skill.selfDamage) {
       turnUnit.currentHp -= skill.selfDamage;

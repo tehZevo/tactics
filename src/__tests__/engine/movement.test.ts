@@ -24,6 +24,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
     };
 
@@ -56,6 +57,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
     };
 
@@ -83,6 +85,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
     };
 
@@ -99,6 +102,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 2, turnStartCol: 0,
     };
 
@@ -127,6 +131,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
     };
 
@@ -156,6 +161,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
     };
 
@@ -191,6 +197,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
     };
 
@@ -207,6 +214,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 1,
     };
 
@@ -214,9 +222,9 @@ describe("Game Engine — Movement", () => {
     state.board[1][0] = warrior;
     state.board[1][1] = archer;
 
-    const result = applyAction(state, move(1, 5));
+    const result = applyAction(state, move(1, 3));
 
-    const movedArchers = result.board[1][5];
+    const movedArchers = result.board[1][3];
     expect(movedArchers).not.toBeNull();
     expect(movedArchers!.typeId).toBe("archer");
 
@@ -241,6 +249,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 1,
     };
 
@@ -257,6 +266,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
     };
 
@@ -264,13 +274,13 @@ describe("Game Engine — Movement", () => {
     state.board[1][0] = mover;
     state.board[1][1] = blocker;
 
-    const result = applyAction(state, move(1, 3));
+    const result = applyAction(state, move(1, 2));
 
-    const movedUnit = result.board[1][3];
+    const movedUnit = result.board[1][2];
     expect(movedUnit).not.toBeNull();
     expect(movedUnit!.typeId).toBe("warrior");
     expect(movedUnit!.row).toBe(1);
-    expect(movedUnit!.col).toBe(3);
+    expect(movedUnit!.col).toBe(2);
     expect(result.board[1][0]).toBeNull();
   });
 
@@ -290,6 +300,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
     };
 
@@ -306,6 +317,7 @@ describe("Game Engine — Movement", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 3, turnStartCol: 0,
     };
 

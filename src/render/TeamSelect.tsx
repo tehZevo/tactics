@@ -1,6 +1,6 @@
 /// <reference types="react" />
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   state,
   deletePlacedUnit,
@@ -9,6 +9,7 @@ import {
   confirmTeam,
   getIsVsAI,
   createPlacedUnit,
+  addUnitToBoard,
   getPlayerIndex,
   getEffectiveStatsFor,
   getUnitMaxHpFor,
@@ -22,7 +23,7 @@ import {
 } from "../data/index";
 import { SKILL_DEFS } from "../data/skills.js";
 import { PRESET_TEAMS, getTeamPlacements } from "../data/teams.js";
-import { IsoBoard } from "./components/IsoBoard";
+import { IsoBoard, centerBoardCamera } from "./components/IsoBoard";
 
 function applyPassive(typeDef: any, passiveId: string) {
   if (!passiveId || !PASSIVE_DEFS[passiveId]) return typeDef;
@@ -56,7 +57,7 @@ function UnitCardGrid({
         return (
           <div
             key={typeId}
-            className={`unit-card${isSelected ? " active" : ""}`}
+            className={`unit-card${isSelected ? " selected" : ""}`}
             onClick={() => onSelect(typeId)}
           >
             <div className="unit-icon" style={{ background: def.color, width: "28px", height: "28px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>
@@ -146,6 +147,10 @@ function UnitPreview({
 
   return (
     <div className="unit-preview">
+      <div className="preview-header">
+        <span className="preview-icon">{typeDef.icon}</span>
+        <h3 className="preview-name">{typeDef.name}</h3>
+      </div>
       <div className="preview-description">{typeDef.description}</div>
 
       <div className="preview-stats">
@@ -277,6 +282,13 @@ export function TeamSelect() {
     });
   }, []);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      centerBoardCamera();
+    }, 100);
+    return () => clearTimeout(timeout);
+  }, []);
+
   const p1Team = state.p1Team;
   const p2Team = state.p2Team;
   const isVsAI = getIsVsAI();
@@ -352,30 +364,59 @@ export function TeamSelect() {
           : "Player 2: Place your units on the map — 6 units required"}
       </div>
 
-      <div className="team-select-side-panel">
+      <div className="team-select-side-panel" style={{ display: state.selectedDeployCell ? 'block' : 'none' }}>
         <SidePanel
-          placed={team.placed}
           editingIdx={editingIdx}
+          placed={team.placed}
           onSelectPlaced={handleSelectPlacedUnit}
           onUnitSelect={handleSelectUnitType}
           onPassiveSelect={handleSelectPassive}
           onPresetSelect={handleSelectPreset}
+          onClose={() => {
+            state.selectedDeployCell = null;
+            state.editingUnitIndex = null;
+            setVersion(v => v + 1);
+          }}
+          onDeploy={() => {
+            if (state.selectedDeployCell && state.selectedUnitType) {
+              addUnitToBoard(state.selectedUnitType, state.selectedPassiveId || "");
+              state.selectedDeployCell = null;
+              state.editingUnitIndex = null;
+              setVersion(v => v + 1);
+            }
+          }}
         />
       </div>
 
-      <div className="team-select-preview-panel">
-        <PreviewPanel
-          unitTypeId={unitTypeId}
-          passiveId={previewPassiveId}
-          isCurrentPlayer={isCurrentPlayer}
-          editingIdx={editingIdx}
-          onDeleteUnit={handleDeletePlaced}
-        />
-      </div>
+      {state.editingDeployedUnit !== null && (
+        <div className="unit-edit-dialog">
+          <div className="unit-edit-dialog-overlay" onClick={() => {
+            state.editingDeployedUnit = null;
+            setVersion(v => v + 1);
+          }} />
+          <div className="unit-edit-dialog-content">
+            <h4>Unit Details</h4>
+            <UnitPreview
+              unitTypeId={team.placed[state.editingDeployedUnit]?.typeId || ""}
+              passiveId={team.placed[state.editingDeployedUnit]?.passiveId || ""}
+              isCurrentPlayer={isCurrentPlayer}
+              editingIdx={state.editingDeployedUnit}
+              onDeleteUnit={(index: number) => {
+                handleDeletePlaced(index);
+                state.editingDeployedUnit = null;
+                setVersion(v => v + 1);
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="map-instructions">
-        Click a tile in your deployment zone to select it, then choose a unit and passive to place it.
-        Click a placed unit to edit or delete it.
+        {state.editingDeployedUnit !== null
+          ? "Tap on the unit to view details, or tap outside to dismiss"
+          : state.selectedDeployCell
+            ? `Selected: (${state.selectedDeployCell.row}, ${state.selectedDeployCell.col}) — Choose a unit and passive to place it.`
+            : "Click a tile in your deployment zone to select it, then choose a unit and passive to place it."}
       </div>
 
       <button className="btn btn-primary confirm-area" onClick={() => confirmTeam()}>
@@ -394,6 +435,8 @@ function SidePanel({
   onUnitSelect,
   onPassiveSelect,
   onPresetSelect,
+  onClose,
+  onDeploy,
 }: {
   placed: { typeId: string; passiveId: string }[];
   editingIdx: number | null;
@@ -401,15 +444,28 @@ function SidePanel({
   onUnitSelect: (typeId: string) => void;
   onPassiveSelect: (passiveId: string) => void;
   onPresetSelect: (index: number) => void;
+  onClose: () => void;
+  onDeploy: () => void;
 }) {
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [state.selectedDeployCell, editingIdx]);
+
+  useEffect(() => {
+    if (state.selectedDeployCell && !state.selectedUnitType) {
+      selectUnitType("warrior");
+      selectPassiveId("");
+    }
+  }, [state.selectedDeployCell]);
+
+  const unitTypeId = editingIdx !== null ? (placed[editingIdx]?.typeId || state.selectedUnitType) : state.selectedUnitType;
+  const passiveId = editingIdx !== null ? (placed[editingIdx]?.passiveId || "") : state.selectedPassiveId;
+
   return (
-    <div className="side-panel">
-      <div className="team-select-col">
-        <h4>Placed Units</h4>
-        <RosterList placed={placed} editingIdx={editingIdx} onSelect={onSelectPlaced} />
-        <div className="placed-count">{placed.length}/6 placed</div>
-        <h4>Prebuilt Teams</h4>
-        <PresetTeamList placedCount={placed.length} placedUnits={placed} onSelect={onPresetSelect} />
+    <div className="side-panel side-panel-mobile">
+      <div className="side-panel-content">
         <h4>Choose Unit</h4>
         <UnitCardGrid selectedUnitType={state.selectedUnitType} onSelect={onUnitSelect} />
         <h4>Choose Passive</h4>
@@ -426,6 +482,23 @@ function SidePanel({
             onSelect={onPassiveSelect}
           />
         )}
+        <div className="side-panel-actions">
+          <button className="deploy-unit-btn" onClick={onDeploy} disabled={!state.selectedUnitType}>
+            Deploy Unit
+          </button>
+          <button className="cancel-unit-btn" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
+        <div className="side-panel-preview">
+          <UnitPreview
+            unitTypeId={unitTypeId}
+            passiveId={passiveId}
+            isCurrentPlayer={true}
+            editingIdx={editingIdx}
+            onDeleteUnit={() => {}}
+          />
+        </div>
       </div>
     </div>
   );

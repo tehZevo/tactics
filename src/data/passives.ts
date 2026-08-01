@@ -84,6 +84,18 @@ export const PASSIVE_DEFS: Record<string, PassiveDef> = {
     apply: (s) => ({ ...s }),
     recommended: ["berserker"],
   },
+  energized: {
+    name: "Energized",
+    description: "+2 AP per turn. Power users can spam abilities.",
+    apply: (s) => ({ ...s }),
+    recommended: ["wizard", "rogue", "phantom"],
+  },
+  focus: {
+    name: "Focus",
+    description: "+1 initiative. Trade raw defense for acting sooner.",
+    apply: (s) => ({ ...s, initiative: s.initiative + 1 }),
+    recommended: ["cleric", "paladin", "geomancer"],
+  },
 };
 
 export const PASSIVE_IDS = Object.keys(PASSIVE_DEFS);

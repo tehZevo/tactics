@@ -2,6 +2,7 @@ import { GameState, PlacedUnit, Team } from "../types.js";
 import type { MapLayout } from "../../data/maps.js";
 import { Action } from "./Action.js";
 import { getUnitByRef } from "../helpers.js";
+import { buildTurnOrder } from "../turns.js";
 
 export class StartBattleAction extends Action {
   constructor(
@@ -26,15 +27,7 @@ export class StartBattleAction extends Action {
       state.board[unit.row][unit.col] = unit;
     }
 
-    const allUnits: { playerIndex: 0 | 1; unitIndex: number; unit: PlacedUnit }[] = [];
-    for (let i = 0; i < state.p1Team.placed.length; i++) {
-      allUnits.push({ playerIndex: 0, unitIndex: i, unit: state.p1Team.placed[i] });
-    }
-    for (let i = 0; i < state.p2Team.placed.length; i++) {
-      allUnits.push({ playerIndex: 1, unitIndex: i, unit: state.p2Team.placed[i] });
-    }
-    allUnits.sort((a, b) => b.unit.initiative - a.unit.initiative);
-    state.turnOrder = allUnits.map(u => ({ playerIndex: u.playerIndex, unitIndex: u.unitIndex }));
+    state.turnOrder = buildTurnOrder(state.p1Team.placed, state.p2Team.placed);
     state.currentTurnIndex = 0;
 
     const firstUnit = getUnitByRef({ playerIndex: 0, unitIndex: 0 }, state.p1Team.placed, state.p2Team.placed);

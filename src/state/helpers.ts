@@ -132,7 +132,7 @@ export function getTargetsInRange(
 export function calculateDamage(attacker: PlacedUnit, defender: PlacedUnit, skillId: string): number {
   const skill = SKILL_DEFS[skillId];
   const atkStats = getEffectiveStats(attacker);
-  const defStats = getEffectiveStats(defender);
+  const defStats = getEffectiveStatsWithBonus(defender);
 
   let damage = (skill.damage || 0) + atkStats.attack;
 
@@ -181,6 +181,14 @@ export function getEffectiveStatsFor(typeId: string, passiveId: string | null | 
     def += passiveStats.defense;
   }
   return { attack: Math.max(atk, 0), defense: Math.max(def, 0) };
+}
+
+export function getEffectiveStatsWithBonus(unit: PlacedUnit): { attack: number; defense: number } {
+  const stats = getEffectiveStats(unit);
+  return {
+    attack: stats.attack,
+    defense: stats.defense + (unit.defenseBonus || 0),
+  };
 }
 
 export function isOwnUnit(turnUnit: PlacedUnit, target: PlacedUnit): boolean {

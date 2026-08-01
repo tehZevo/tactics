@@ -23,6 +23,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -40,6 +41,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -75,6 +77,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -92,6 +95,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -126,6 +130,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -143,6 +148,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -158,10 +164,10 @@ describe("Game Engine — Turn Management", () => {
     const result = advanceTurn(state);
     const unitAfterTurn = getUnitFromState(result, 0, 0);
     expect(unitAfterTurn).not.toBeNull();
-    // Unit 0 was previous turn; unit 1 (next) gets +1 AP
+    // Unit 0 was previous turn; unit 1 (next) gets +2 AP
     const unit1After = getUnitFromState(result, 1, 0);
     expect(unit1After).not.toBeNull();
-    expect(unit1After!.ap).toBe(2);
+    expect(unit1After!.ap).toBe(3);
   });
 
   it("should skip dead units", () => {
@@ -180,6 +186,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -197,6 +204,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -231,6 +239,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -248,6 +257,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -280,6 +290,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -297,6 +308,7 @@ describe("Game Engine — Turn Management", () => {
       poisonTurns: 0,
       skillUsedThisTurn: true,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };

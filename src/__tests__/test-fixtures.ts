@@ -34,6 +34,9 @@ function defaultUnit(typeId: string, passiveId: string, playerIndex: 0 | 1, row:
     initiative: def.initiative,
     skillUsedThisTurn: false,
     invulnerable: false,
+    poisonTurns: 0,
+    buffTurns: 0,
+    defenseBonus: 0,
     turnStartRow: row,
     turnStartCol: col,
   };
@@ -60,9 +63,11 @@ export function createTestState(): GameState {
     map: createTestMap(),
     deployTurn: 0,
     selectedDeployCell: null,
+    editingDeployedUnit: null,
     editingUnitIndex: null,
     selectedUnitType: null,
     selectedPassiveId: null,
+    pendingRuneLocation: null,
     turnOrder: [],
     currentTurnIndex: 0,
     selectedUnit: null,
@@ -75,6 +80,7 @@ export function createTestState(): GameState {
     actionMode: "idle",
     selectedAction: null,
     pendingDamage: null,
+    runeEffects: [],
   };
 }
 

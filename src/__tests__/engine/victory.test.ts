@@ -24,6 +24,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -41,6 +42,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 2, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -76,6 +78,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -93,6 +96,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 2, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -128,6 +132,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -145,6 +150,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 4, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -190,6 +196,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -207,6 +214,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 2, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };
@@ -243,6 +251,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 1, turnStartCol: 0,
       playerIndex: 0 as 0 | 1,
     };
@@ -260,6 +269,7 @@ describe("Game Engine — Victory Conditions", () => {
       poisonTurns: 0,
       skillUsedThisTurn: false,
       invulnerable: false,
+      buffTurns: 0,
       turnStartRow: 2, turnStartCol: 0,
       playerIndex: 1 as 0 | 1,
     };

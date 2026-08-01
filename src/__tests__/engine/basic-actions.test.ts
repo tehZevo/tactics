@@ -21,7 +21,7 @@ describe("Game Engine — Basic Actions", () => {
   it("should execute a valid move", () => {
     const battleState = startTestBattle(
       [{ typeId: "warrior", passiveId: "toughened", col: 0 }],
-      [{ typeId: "archer", passiveId: "nimble", col: 5 }]
+      [{ typeId: "geomancer", passiveId: "toughened", col: 5 }]
     );
 
     const result = applyAction(battleState, move(1, 0));
@@ -33,7 +33,7 @@ describe("Game Engine — Basic Actions", () => {
   it("should reject an invalid move (out of range)", () => {
     const battleState = startTestBattle(
       [{ typeId: "warrior", passiveId: "toughened", col: 0 }],
-      [{ typeId: "archer", passiveId: "nimble", col: 5 }]
+      [{ typeId: "geomancer", passiveId: "toughened", col: 5 }]
     );
 
     const result = applyAction(battleState, move(5, 5));

@@ -8,6 +8,7 @@ import {
   PASSIVE_DEFS,
 } from "./data/index";
 import type { GameState, PlacedUnit, Team } from "./state/types";
+import { applyAction } from "./state/game-engine.js";
 import {
   getUnitAt,
   getReachableTiles,
@@ -24,7 +25,7 @@ import {
 } from "./state/helpers.js";
 import { SKILL_DEFS } from "./data/skills.js";
 import { executeMove, executeLeap } from "./state/moves.js";
-import { executeAttack, executeAoeAttack } from "./state/combat.js";
+import { useSkill } from "./state/actions/index.js";
 import { getTurnUnit, advanceTurn } from "./state/turns.js";
 import { aiTakeTurn } from "./state/ai.js";
 import { getRandomMap, TEST_MAP } from "./data/maps.js";
@@ -52,12 +53,14 @@ export function createPlacedUnit(typeId: string, passiveId: string, row: number,
     col,
     playerIndex,
     currentHp: stats.hp,
-    ap: 0,
+    ap: 2,
     movement: stats.movement,
     baseMovement: stats.movement,
     initiative: stats.initiative,
     skillUsedThisTurn: false,
     invulnerable: false,
+    poisonTurns: 0,
+    buffTurns: 0,
     leapBonus: 0,
     turnStartRow: row,
     turnStartCol: col,
@@ -75,9 +78,11 @@ function initState(): GameState {
     map: getRandomMap(),
     deployTurn: 0,
     selectedDeployCell: null,
+    editingDeployedUnit: null,
     editingUnitIndex: null,
     selectedUnitType: null,
     selectedPassiveId: null,
+    pendingRuneLocation: null,
     turnOrder: [],
     currentTurnIndex: 0,
     selectedUnit: null,
@@ -88,6 +93,7 @@ function initState(): GameState {
     actionMode: "idle",
     selectedAction: null,
     pendingDamage: null,
+    runeEffects: [],
   };
 }
 
@@ -145,12 +151,13 @@ export function selectDeployCell(row: number, col: number): void {
   const existingUnit = getUnitAt(state, row, col);
   const team = state.deployTurn === 0 ? state.p1Team : state.p2Team;
 
-  // If clicking on an existing placed unit, enter edit mode for it
+  // If clicking on an existing placed unit, enter edit mode for it (mobile dialog)
   if (existingUnit) {
     const unitPlayer = getPlayerIndex(existingUnit);
     if (unitPlayer === state.deployTurn) {
       const index = team.placed.indexOf(existingUnit);
       if (index >= 0) {
+        state.editingDeployedUnit = index;
         state.editingUnitIndex = index;
         state.selectedDeployCell = { row, col };
         state.selectedUnitType = existingUnit.typeId;
@@ -162,25 +169,13 @@ export function selectDeployCell(row: number, col: number): void {
     return; // Can't place on enemy units
   }
 
-  // Validate deployment zone (back 2 rows × middle 6 cols on each side)
-  // P1 (deployTurn 0) deploys at bottom; P2 (deployTurn 1) at top
-  if (state.deployTurn === 0 && !(row >= 10 && col >= 3 && col <= 8)) return;
-  if (state.deployTurn === 1 && !(row <= 1 && col >= 3 && col <= 8)) return;
-
-  // If a unit type is selected, place it directly
-  if (state.selectedUnitType && team.placed.length < 6) {
-    const newUnit = createPlacedUnit(state.selectedUnitType, state.selectedPassiveId || "", row, col, state.deployTurn as 0 | 1);
-    team.placed.push(newUnit);
-    state.board[row][col] = newUnit;
-    state.editingUnitIndex = null;
-    state.selectedDeployCell = null;
-    notifySubscribers();
-    return;
-  }
-
-  // Otherwise just select the cell
+  // Select the cell for new deployment
   state.selectedDeployCell = { row, col };
   state.editingUnitIndex = null;
+  state.editingDeployedUnit = null;
+  if (state.screen === "teamSelect" && !state.selectedUnitType) {
+    state.selectedUnitType = "warrior";
+  }
   notifySubscribers();
 }
 
@@ -301,7 +296,6 @@ export function confirmTeam(): void {
 
 export function selectUnitType(typeId: string): void {
   state.selectedUnitType = typeId;
-  state.selectedPassiveId = null;
   notifySubscribers();
 }
 
@@ -328,6 +322,7 @@ export function placeUnit(row: number, col: number): void {
   }
 
   // Battle phase logic
+  const walkable = state.map.grid[row]?.[col] ?? false;
   const unit = getUnitAt(state, row, col);
 
   // If in action selection mode
@@ -373,17 +368,49 @@ export function placeUnit(row: number, col: number): void {
     }
     if (action.type === "aoeAttack") {
       const caster = action.caster;
-      const skill = SKILL_DEFS[action.skillId];
-      const turnUnit = getTurnUnit(state);
-      if (turnUnit && turnUnit.ap >= skill.cost && !turnUnit.skillUsedThisTurn) {
-        turnUnit.skillUsedThisTurn = true;
-        turnUnit.ap -= skill.cost;
-        const centerUnit = state.board[row]?.[col] || caster;
-        executeAoeAttack(state, caster, skill, action.skillId, centerUnit);
-      }
+      const casterRef = findUnitRef(caster, state.p1Team.placed, state.p2Team.placed) as { playerIndex: 0 | 1; unitIndex: number };
+      const centerUnit = state.board[row]?.[col] || caster;
+      const centerRef = findUnitRef(centerUnit, state.p1Team.placed, state.p2Team.placed);
+      state = applyAction(state, useSkill(casterRef, centerRef, action.skillId, { row, col }));
       state.actionMode = "idle";
       state.selectedAction = null;
       notifySubscribers();
+      return;
+    }
+    if (action.type === "runePlacement") {
+      // First click: select location (if not already selected)
+      if (!state.pendingRuneLocation) {
+        if (!walkable || unit) {
+          return; // Invalid cell, do nothing
+        }
+        state.pendingRuneLocation = { row, col };
+        notifySubscribers();
+        return;
+      }
+      // Second click: confirm placement
+      if (state.pendingRuneLocation.row === row && state.pendingRuneLocation.col === col) {
+        const turnUnit = getTurnUnit(state);
+        if (!turnUnit) {
+          state.actionMode = "idle";
+          state.selectedAction = null;
+          state.pendingRuneLocation = null;
+          notifySubscribers();
+          return;
+        }
+        const casterRef = findUnitRef(turnUnit, state.p1Team.placed, state.p2Team.placed) as { playerIndex: 0 | 1; unitIndex: number };
+        state = applyAction(state, useSkill(casterRef, null, action.skillId, { row, col }));
+        state.actionMode = "idle";
+        state.selectedAction = null;
+        state.pendingRuneLocation = null;
+        notifySubscribers();
+        return;
+      }
+      // Clicked different cell: update pending location
+      if (walkable && !unit) {
+        state.pendingRuneLocation = { row, col };
+        notifySubscribers();
+        return;
+      }
       return;
     }
     if (action.type === "attack" || action.type === "skill") {
@@ -393,7 +420,16 @@ export function placeUnit(row: number, col: number): void {
         notifySubscribers();
         return;
       }
-      executeAttack(state, action.skillId, unit);
+      const targetRef = findUnitRef(unit, state.p1Team.placed, state.p2Team.placed);
+      const turnUnit = getTurnUnit(state);
+      if (!turnUnit) {
+        state.actionMode = "idle";
+        state.selectedAction = null;
+        notifySubscribers();
+        return;
+      }
+      const casterRef = findUnitRef(turnUnit, state.p1Team.placed, state.p2Team.placed) as { playerIndex: 0 | 1; unitIndex: number };
+      state = applyAction(state, useSkill(casterRef, targetRef, action.skillId));
       notifySubscribers();
       return;
     }
@@ -418,7 +454,8 @@ export function startTargeting(unit: PlacedUnit, skillId: string): void {
   state.actionMode = "selectTarget";
 
   if (skill.selfTarget) {
-    executeAttack(state, skillId, unit);
+    const unitRef = findUnitRef(unit, state.p1Team.placed, state.p2Team.placed) as { playerIndex: 0 | 1; unitIndex: number };
+    state = applyAction(state, useSkill(unitRef, unitRef, skillId));
     state.actionMode = "idle";
     state.selectedAction = null;
     notifySubscribers();
@@ -431,9 +468,21 @@ export function startTargeting(unit: PlacedUnit, skillId: string): void {
   }
 
   if (skill.type === "movement" && skill.leapBonus) {
-    executeAttack(state, skillId, unit);
+    const unitRef = findUnitRef(unit, state.p1Team.placed, state.p2Team.placed) as { playerIndex: 0 | 1; unitIndex: number };
+    state = applyAction(state, useSkill(unitRef, unitRef, skillId));
     state.selectedAction = { type: "leap", target: { row: unit.row, col: unit.col } };
     notifySubscribers();
+    return;
+  }
+
+  if (skill.runeTurns) {
+    state.selectedAction = { type: "runePlacement", skillId };
+    state.pendingRuneLocation = null;
+    return;
+  }
+
+  if (skillId === "reposition") {
+    state.selectedAction = { type: "reposition", target: null, skillId };
     return;
   }
 
@@ -443,6 +492,10 @@ export function startTargeting(unit: PlacedUnit, skillId: string): void {
 
 export function endTurn(): void {
   advanceTurn(state);
+  const nextUnit = getTurnUnit(state);
+  if (nextUnit && getIsVsAI() && getPlayerIndex(nextUnit) === 1) {
+    setTimeout(() => aiTakeTurn(state), 300);
+  }
   notifySubscribers();
 }
 
@@ -532,9 +585,10 @@ export function notifySubscribers(): void {
 
 // ---- Re-exports from submodules ----
 
-export { executeAttack, executeAoeAttack } from "./state/combat";
 export { executeMove, executeLeap } from "./state/moves";
 export { getTurnUnit, advanceTurn } from "./state/turns";
 export { aiTakeTurn } from "./state/ai";
 export { isOwnUnit, getPlayerIndex, getUnitDisplayName, getReachableTiles, getEffectiveStats, getEffectiveStatsFor, getUnitMaxHp, getUnitMaxHpFor, getUnitAt, getTargetsInRange, calculateDamage, addLog, findUnitRef, getUnitByRef } from "./state/helpers";
+export { applyAction } from "./state/game-engine";
+export { useSkill } from "./state/actions";
 export type { GameState, PlacedUnit } from "./state/types";

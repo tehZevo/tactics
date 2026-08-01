@@ -15,6 +15,37 @@ import {
   addLog,
 } from "./helpers.js";
 
+export function buildTurnOrder(p1Placed: PlacedUnit[], p2Placed: PlacedUnit[]): { playerIndex: 0 | 1; unitIndex: number }[] {
+  const p1 = p1Placed.map((unit, i) => ({ playerIndex: 0 as const, unitIndex: i, unit }));
+  const p2 = p2Placed.map((unit, i) => ({ playerIndex: 1 as const, unitIndex: i, unit }));
+
+  const initGroups = new Map<number, { playerIndex: 0 | 1; unitIndex: number; unit: PlacedUnit }[]>();
+  for (const u of [...p1, ...p2]) {
+    const init = u.unit.initiative;
+    if (!initGroups.has(init)) initGroups.set(init, []);
+    initGroups.get(init)!.push(u);
+  }
+
+  const sortedInits = [...initGroups.keys()].sort((a, b) => b - a);
+  const ordered: { playerIndex: 0 | 1; unitIndex: number; unit: PlacedUnit }[] = [];
+  for (const init of sortedInits) {
+    const group = initGroups.get(init)!;
+    const byPlayer = new Map<0 | 1, typeof group>();
+    for (const u of group) {
+      if (!byPlayer.has(u.playerIndex)) byPlayer.set(u.playerIndex, []);
+      byPlayer.get(u.playerIndex)!.push(u);
+    }
+    let p0i = 0, p1i = 0;
+    const p0 = byPlayer.get(0) || [];
+    const p1 = byPlayer.get(1) || [];
+    while (p0i < p0.length || p1i < p1.length) {
+      if (p0i < p0.length) ordered.push(p0[p0i++]);
+      if (p1i < p1.length) ordered.push(p1[p1i++]);
+    }
+  }
+  return ordered.map(u => ({ playerIndex: u.playerIndex, unitIndex: u.unitIndex }));
+}
+
 export function getTurnUnit(state: GameState): PlacedUnit | null {
   if (state.currentTurnIndex >= state.turnOrder.length) return null;
   const { playerIndex, unitIndex } = state.turnOrder[state.currentTurnIndex];
@@ -40,13 +71,48 @@ export function advanceTurn(state: GameState): GameState {
       unit.turnStartRow = unit.row;
       unit.turnStartCol = unit.col;
 
+      if (unit.poisonTurns > 0) {
+        unit.poisonTurns--;
+        unit.currentHp -= 1;
+        addLog(state, `${getUnitDisplayName(unit)} takes 1 poison damage! (${unit.poisonTurns} turns remaining)`, "damage");
+        if (unit.currentHp <= 0) {
+          unit.currentHp = 0;
+          state.board[unit.row][unit.col] = null;
+          addLog(state, `${getUnitDisplayName(unit)} has succumbed to poison!`, "damage");
+        }
+      }
+
       if (unit.passiveId === "regeneration") {
         const maxHp = getUnitMaxHp(unit);
         unit.currentHp = Math.min(unit.currentHp + 1, maxHp);
         addLog(state, `${getUnitDisplayName(unit)} restores 1 HP via Regeneration!`, "heal");
       }
+
+      // Process rune effects for units standing on rune tiles
+      for (const rune of state.runeEffects) {
+        if (rune.row === unit.row && rune.col === unit.col) {
+          if (rune.type === "flame") {
+            unit.currentHp -= 1;
+            addLog(state, `${getUnitDisplayName(unit)} takes 1 damage from a Flame Rune!`, "damage");
+            if (unit.currentHp <= 0) {
+              unit.currentHp = 0;
+              state.board[unit.row][unit.col] = null;
+              addLog(state, `${getUnitDisplayName(unit)} has been consumed by the Flame Rune!`, "damage");
+            }
+          } else if (rune.type === "earth") {
+            unit.defenseBonus = (unit.defenseBonus || 0) + 1;
+            addLog(state, `${getUnitDisplayName(unit)} gains +1 defense from an Earth Rune!`, "info");
+          }
+        }
+      }
     }
     state.currentTurnIndex = 0;
+
+    // Reduce rune durations and remove expired runes
+    state.runeEffects = state.runeEffects
+      .map(rune => ({ ...rune, turns: rune.turns - 1 }))
+      .filter(rune => rune.turns > 0);
+
     checkVictory(state);
     if (state.screen === "victory") return state;
   }
@@ -59,13 +125,35 @@ export function advanceTurn(state: GameState): GameState {
       unit.invulnerable = false;
       unit.turnStartRow = unit.row;
       unit.turnStartCol = unit.col;
-      let apGain = 1;
+
+      if (unit.buffTurns > 0) {
+        unit.buffTurns--;
+        if (unit.buffTurns === 0) {
+          addLog(state, `${getUnitDisplayName(unit)}'s berserk rage fades! No more attack/defense bonus.`, "info");
+        }
+      }
+
+      let apGain = 2;
       if (unit.passiveId === "desperate") apGain += 1;
+      if (unit.passiveId === "energized") apGain += 2;
+      if ((unit.focusCharges || 0) > 0) {
+        apGain += 1;
+        unit.focusCharges!--;
+        addLog(state, `${getUnitDisplayName(unit)} gains +1 AP from Focus!`, "info");
+      }
       unit.ap = Math.min(unit.ap + apGain, MAX_AP);
       state.selectedUnit = { playerIndex: next.playerIndex, unitIndex: next.unitIndex };
       state.actionMode = "idle";
       state.selectedAction = null;
       addLog(state, `${getUnitDisplayName(unit)}'s turn.`, "info");
+
+      // Check if unit starts their turn on a wind rune
+      const windRune = state.runeEffects.find(r => r.row === unit.row && r.col === unit.col && r.type === "wind");
+      if (windRune) {
+        unit.movement += 1;
+        addLog(state, `${getUnitDisplayName(unit)} gains +1 movement from a Wind Rune!`, "info");
+      }
+
       return state;
     }
     state.currentTurnIndex++;
@@ -102,7 +190,7 @@ export function startBattle(state: GameState): void {
 
   const firstUnit = getTurnUnit(state);
   if (firstUnit) {
-    firstUnit.ap = 1;
+    firstUnit.ap = 2;
     firstUnit.turnStartRow = firstUnit.row;
     firstUnit.turnStartCol = firstUnit.col;
     addLog(state, `${getUnitDisplayName(firstUnit)} leads the charge.`, "info");

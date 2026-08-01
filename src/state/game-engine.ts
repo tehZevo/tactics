@@ -7,6 +7,7 @@
 
 import { GameState, PlacedUnit } from "./types.js";
 import { Action } from "./actions/index.js";
+import { buildTurnOrder } from "./turns.js";
 
 // ---- Deep clone helper for immutable API ----
 
@@ -23,15 +24,7 @@ export function applyAction(state: GameState, action: Action): GameState {
   // Set up turn order if not present (tests may skip startBattle)
   if (newState.turnOrder.length === 0 &&
     (newState.p1Team.placed.length > 0 || newState.p2Team.placed.length > 0)) {
-    const allUnits: { playerIndex: 0 | 1; unitIndex: number; unit: PlacedUnit }[] = [];
-    for (let i = 0; i < newState.p1Team.placed.length; i++) {
-      allUnits.push({ playerIndex: 0, unitIndex: i, unit: newState.p1Team.placed[i] });
-    }
-    for (let i = 0; i < newState.p2Team.placed.length; i++) {
-      allUnits.push({ playerIndex: 1, unitIndex: i, unit: newState.p2Team.placed[i] });
-    }
-    allUnits.sort((a, b) => b.unit.initiative - a.unit.initiative);
-    newState.turnOrder = allUnits.map(u => ({ playerIndex: u.playerIndex, unitIndex: u.unitIndex }));
+    newState.turnOrder = buildTurnOrder(newState.p1Team.placed, newState.p2Team.placed);
     newState.currentTurnIndex = 0;
   }
 

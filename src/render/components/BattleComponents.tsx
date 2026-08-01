@@ -1,5 +1,6 @@
 /// <reference types="react" />
 import React from 'react';
+import { useState } from 'react';
 import {
   state,
   getTurnUnit,
@@ -39,24 +40,32 @@ function UnitHeader({ unit }: { unit: PlacedUnit }) {
 
 function SkillList({ unit }: { unit: PlacedUnit }) {
   const td = UNIT_TYPE_DEFS[unit.typeId];
+  const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="up-section">
-      <div className="up-section-title">Skills</div>
-      {td.skills.map((sid) => {
-        const skill = SKILL_DEFS[sid];
-        const canUse = unit.ap >= skill.cost && !unit.skillUsedThisTurn;
-        return (
-          <div
-            key={sid}
-            className={`up-skill${canUse ? "" : " disabled"}`}
-            onClick={() => canUse && startTargeting(unit, sid)}
-          >
-            <div className="up-skill-name">{skill.name}</div>
-            <div className="up-skill-cost">{skill.cost} AP &middot; Range {skill.range}</div>
-            <div className="up-skill-desc">{skill.description}</div>
-          </div>
-        );
-      })}
+    <div className="up-section up-skill-section">
+      <div className="up-section-title up-skill-toggle" onClick={() => setIsOpen(!isOpen)}>
+        <span>Skills</span>
+        <span className="up-skill-toggle-icon">{isOpen ? "▾" : "▸"}</span>
+      </div>
+      {isOpen && (
+        <div className="up-skill-list">
+          {td.skills.map((sid) => {
+            const skill = SKILL_DEFS[sid];
+            const canUse = unit.ap >= skill.cost && !unit.skillUsedThisTurn;
+            return (
+              <div
+                key={sid}
+                className={`up-skill${canUse ? "" : " disabled"}`}
+                onClick={() => canUse && startTargeting(unit, sid)}
+              >
+                <div className="up-skill-name">{skill.name}</div>
+                <div className="up-skill-cost">{skill.cost} AP &middot; Range {skill.range}</div>
+                <div className="up-skill-desc">{skill.description}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

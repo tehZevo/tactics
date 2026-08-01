@@ -6,6 +6,7 @@ import {
   SKILL_DEFS,
 } from "../data/index.js";
 import { GameState, PlacedUnit } from "./types.js";
+import { applyAction } from "./game-engine.js";
 import {
   getUnitByRef,
   getReachableTiles,
@@ -13,10 +14,12 @@ import {
   getUnitMaxHp,
   getPlayerIndex,
   isOwnUnit,
+  findUnitRef,
 } from "./helpers.js";
-import { executeAttack } from "./combat.js";
 import { executeMove } from "./moves.js";
+import { useSkill } from "./actions/index.js";
 import { getTurnUnit, advanceTurn } from "./turns.js";
+import { getEffectiveRange } from "./skill-effects/effects.js";
 import { notifySubscribers, getIsVsAI } from "../state.js";
 
 export function aiTakeTurn(state: GameState): void {
@@ -69,7 +72,7 @@ export function aiTakeTurn(state: GameState): void {
     const skill = SKILL_DEFS[sid];
     if (turnUnit.ap < skill.cost) continue;
 
-    let range = skill.range;
+    let range = getEffectiveRange(turnUnit, state, skill);
     if (turnUnit.passiveId === "tracker") range += 1;
 
     for (const e of enemyUnits) {
@@ -99,7 +102,7 @@ export function aiTakeTurn(state: GameState): void {
       if (skill.type === "heal" && turnUnit.ap >= skill.cost) {
         const target = lowAllies[0];
         const dist = Math.abs(turnUnit.row - target.row) + Math.abs(turnUnit.col - target.col);
-        let range = skill.range;
+        let range = getEffectiveRange(turnUnit, state, skill);
         if (turnUnit.passiveId === "tracker") range += 1;
         if (dist <= range) {
           bestAction = "skill";
@@ -113,11 +116,15 @@ export function aiTakeTurn(state: GameState): void {
 
   // Execute AI action
   if (bestAction === "attack" && bestTarget && bestSkill) {
-    executeAttack(state, bestSkill, bestTarget);
+    const casterRef = findUnitRef(turnUnit, state.p1Team.placed, state.p2Team.placed) as { playerIndex: 0 | 1; unitIndex: number };
+    const targetRef = findUnitRef(bestTarget, state.p1Team.placed, state.p2Team.placed);
+    state = applyAction(state, useSkill(casterRef, targetRef, bestSkill));
     advanceTurn(state);
     notifySubscribers();
   } else if (bestAction === "skill" && bestTarget && bestSkill) {
-    executeAttack(state, bestSkill, bestTarget);
+    const casterRef = findUnitRef(turnUnit, state.p1Team.placed, state.p2Team.placed) as { playerIndex: 0 | 1; unitIndex: number };
+    const targetRef = findUnitRef(bestTarget, state.p1Team.placed, state.p2Team.placed);
+    state = applyAction(state, useSkill(casterRef, targetRef, bestSkill));
     advanceTurn(state);
     notifySubscribers();
   } else {
